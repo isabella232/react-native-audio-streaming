@@ -13,6 +13,12 @@
 @synthesize bridge = _bridge;
 
 RCT_EXPORT_MODULE()
+
+- (NSArray<NSString *> *)supportedEvents
+{
+  return @[@"AudioBridgeEvent"];
+}
+
 - (dispatch_queue_t)methodQueue
 {
    return dispatch_get_main_queue();
@@ -27,10 +33,10 @@ RCT_EXPORT_MODULE()
       [self.audioPlayer setDelegate:self];
       self.lastUrlString = @"";
       [NSTimer scheduledTimerWithTimeInterval:0.5 target:self selector:@selector(tick:) userInfo:nil repeats:YES];
-      
+
       NSLog(@"AudioPlayer initialized");
    }
-   
+
    return self;
 }
 
@@ -40,18 +46,18 @@ RCT_EXPORT_MODULE()
    if (!self.audioPlayer) {
       return;
    }
-   
+
    if (self.audioPlayer.currentlyPlayingQueueItemId != nil && self.audioPlayer.state == STKAudioPlayerStatePlaying) {
       NSNumber *progress = [NSNumber numberWithFloat:self.audioPlayer.progress];
       NSNumber *duration = [NSNumber numberWithFloat:self.audioPlayer.duration];
       NSString *url = [NSString stringWithString:self.audioPlayer.currentlyPlayingQueueItemId];
-      
-      [self.bridge.eventDispatcher sendDeviceEventWithName:@"AudioBridgeEvent" body:@{
-                                                                                 @"status": @"STREAMING",
-                                                                                 @"progress": progress,
-                                                                                 @"duration": duration,
-                                                                                 @"url": url,
-                                                                                 }];
+
+      [self sendEventWithName:@"AudioBridgeEvent" body:@{
+                                                     @"status": @"STREAMING",
+                                                     @"progress": progress,
+                                                     @"duration": duration,
+                                                     @"url": url,
+                                                     }];
    }
 }
 
@@ -73,7 +79,7 @@ RCT_EXPORT_METHOD(play:(NSString *) streamUrl options:(NSDictionary *)options)
    }
 
    [self activate];
-   
+
    if (self.audioPlayer.state == STKAudioPlayerStatePaused && [self.lastUrlString isEqualToString:streamUrl]) {
       [self.audioPlayer resume];
    } else {
@@ -82,11 +88,11 @@ RCT_EXPORT_METHOD(play:(NSString *) streamUrl options:(NSDictionary *)options)
 
    self.lastUrlString = streamUrl;
    self.showNowPlayingInfo = false;
-   
+
    if ([options objectForKey:@"showIniOSMediaCenter"]) {
       self.showNowPlayingInfo = [[options objectForKey:@"showIniOSMediaCenter"] boolValue];
    }
-   
+
    if (self.showNowPlayingInfo) {
       //unregister any existing registrations
       [self unregisterAudioInterruptionNotifications];
@@ -95,7 +101,7 @@ RCT_EXPORT_METHOD(play:(NSString *) streamUrl options:(NSDictionary *)options)
       [self registerAudioInterruptionNotifications];
       [self registerRemoteControlEvents];
    }
-   
+
    [self setNowPlayingInfo:true];
 }
 
@@ -113,9 +119,9 @@ RCT_EXPORT_METHOD(goForward:(double) seconds)
    if (!self.audioPlayer) {
       return;
    }
-   
+
    double newtime = self.audioPlayer.progress + seconds;
-   
+
    if (self.audioPlayer.duration < newtime) {
       [self.audioPlayer stop];
       [self setNowPlayingInfo:false];
@@ -129,9 +135,9 @@ RCT_EXPORT_METHOD(goBack:(double) seconds)
    if (!self.audioPlayer) {
       return;
    }
-   
+
    double newtime = self.audioPlayer.progress - seconds;
-   
+
    if (newtime < 0) {
       [self.audioPlayer seekToTime:0.0];
    } else {
@@ -187,7 +193,7 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
    } else if ([self.audioPlayer state] == STKAudioPlayerStateBuffering) {
       status = @"BUFFERING";
    }
-   
+
    callback(@[[NSNull null], @{@"status": status, @"progress": progress, @"duration": duration, @"url": self.lastUrlString}]);
 }
 
@@ -215,13 +221,13 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 
 - (void)audioPlayer:(STKAudioPlayer *)audioPlayer didReadStreamMetadata:(NSDictionary *)dictionary {
    NSLog(@"AudioPlayer SONG NAME  %@", dictionary[@"StreamTitle"]);
-   
+
    self.currentSong = dictionary[@"StreamTitle"] ? dictionary[@"StreamTitle"] : @"";
-   [self.bridge.eventDispatcher sendDeviceEventWithName:@"AudioBridgeEvent" body:@{
-                                                                                   @"status": @"METADATA_UPDATED",
-                                                                                   @"key": @"StreamTitle",
-                                                                                   @"value": self.currentSong
-                                                                                   }];
+   [self sendEventWithName:@"AudioBridgeEvent" body:@{
+                                                @"status": @"METADATA_UPDATED",
+                                                @"key": @"StreamTitle",
+                                                @"value": self.currentSong
+                                                }];
    [self setNowPlayingInfo:true];
 }
 
@@ -229,33 +235,28 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 {
    NSNumber *duration = [NSNumber numberWithFloat:self.audioPlayer.duration];
    NSNumber *progress = [NSNumber numberWithFloat:self.audioPlayer.progress];
-   
+
    switch (state) {
       case STKAudioPlayerStatePlaying:
-         [self.bridge.eventDispatcher sendDeviceEventWithName:@"AudioBridgeEvent"
-                                                         body:@{@"status": @"PLAYING", @"progress": progress, @"duration": duration, @"url": self.lastUrlString}];
+         [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"PLAYING", @"progress": progress, @"duration": duration, @"url": self.lastUrlString}];
          break;
-         
+
       case STKAudioPlayerStatePaused:
-         [self.bridge.eventDispatcher sendDeviceEventWithName:@"AudioBridgeEvent"
-                                                         body:@{@"status": @"PAUSED", @"progress": progress, @"duration": duration, @"url": self.lastUrlString}];
+         [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"PAUSED", @"progress": progress, @"duration": duration, @"url": self.lastUrlString}];
          break;
-         
+
       case STKAudioPlayerStateStopped:
-         [self.bridge.eventDispatcher sendDeviceEventWithName:@"AudioBridgeEvent"
-                                                         body:@{@"status": @"STOPPED", @"progress": progress, @"duration": duration, @"url": self.lastUrlString}];
+         [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"STOPPED", @"progress": progress, @"duration": duration, @"url": self.lastUrlString}];
          break;
-         
+
       case STKAudioPlayerStateBuffering:
-         [self.bridge.eventDispatcher sendDeviceEventWithName:@"AudioBridgeEvent"
-                                                         body:@{@"status": @"BUFFERING"}];
+         [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"BUFFERING"}];
          break;
-         
+
       case STKAudioPlayerStateError:
-         [self.bridge.eventDispatcher sendDeviceEventWithName:@"AudioBridgeEvent"
-                                                         body:@{@"status": @"ERROR"}];
+         [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"ERROR"}];
          break;
-         
+
       default:
          break;
    }
@@ -267,10 +268,10 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 - (void)activate
 {
    NSError *categoryError = nil;
-   
+
    [[AVAudioSession sharedInstance] setActive:YES error:&categoryError];
    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&categoryError];
-   
+
    if (categoryError) {
       NSLog(@"Error setting category! %@", [categoryError description]);
    }
@@ -279,9 +280,9 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 - (void)deactivate
 {
    NSError *categoryError = nil;
-   
+
    [[AVAudioSession sharedInstance] setActive:NO error:&categoryError];
-   
+
    if (categoryError) {
       NSLog(@"Error setting category! %@", [categoryError description]);
    }
@@ -294,7 +295,7 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 
    [[AVAudioSession sharedInstance] setActive:NO error:&categoryError];
    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&categoryError];
-   
+
    if (categoryError) {
       NSLog(@"Error setting category! %@", [categoryError description]);
    }
@@ -328,10 +329,10 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 {
    // Get the user info dictionary
    NSDictionary *interruptionDict = notification.userInfo;
-   
+
    // Get the AVAudioSessionInterruptionTypeKey enum from the dictionary
    NSInteger interuptionType = [[interruptionDict valueForKey:AVAudioSessionInterruptionTypeKey] integerValue];
-   
+
    // Decide what to do based on interruption type
    switch (interuptionType)
    {
@@ -339,13 +340,13 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
          NSLog(@"Audio Session Interruption case started.");
          [self.audioPlayer pause];
          break;
-         
+
       case AVAudioSessionInterruptionTypeEnded:
          NSLog(@"Audio Session Interruption case ended.");
          self.isPlayingWithOthers = [[AVAudioSession sharedInstance] isOtherAudioPlaying];
          (self.isPlayingWithOthers) ? [self.audioPlayer stop] : [self.audioPlayer resume];
          break;
-         
+
       default:
          NSLog(@"Audio Session Interruption Notification case default.");
          break;
@@ -354,41 +355,41 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 
 - (void)onRouteChangeInterruption:(NSNotification *)notification
 {
-   
+
    NSDictionary *interruptionDict = notification.userInfo;
    NSInteger routeChangeReason = [[interruptionDict valueForKey:AVAudioSessionRouteChangeReasonKey] integerValue];
-   
+
    switch (routeChangeReason)
    {
       case AVAudioSessionRouteChangeReasonUnknown:
          NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonUnknown");
          break;
-         
+
       case AVAudioSessionRouteChangeReasonNewDeviceAvailable:
          // A user action (such as plugging in a headset) has made a preferred audio route available.
          NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonNewDeviceAvailable");
          break;
-         
+
       case AVAudioSessionRouteChangeReasonOldDeviceUnavailable:
          // The previous audio output path is no longer available.
          [self.audioPlayer stop];
          break;
-         
+
       case AVAudioSessionRouteChangeReasonCategoryChange:
          // The category of the session object changed. Also used when the session is first activated.
          NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonCategoryChange"); //AVAudioSessionRouteChangeReasonCategoryChange
          break;
-         
+
       case AVAudioSessionRouteChangeReasonOverride:
          // The output route was overridden by the app.
          NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonOverride");
          break;
-         
+
       case AVAudioSessionRouteChangeReasonWakeFromSleep:
          // The route changed when the device woke up from sleep.
          NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonWakeFromSleep");
          break;
-         
+
       case AVAudioSessionRouteChangeReasonNoSuitableRouteForCategory:
          // The route changed because no suitable route is now available for the specified category.
          NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonNoSuitableRouteForCategory");
@@ -436,7 +437,7 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
    if (self.showNowPlayingInfo) {
       // TODO Get artwork from stream
       // MPMediaItemArtwork *artwork = [[MPMediaItemArtwork alloc]initWithImage:[UIImage imageNamed:@"webradio1"]];
-   
+
       NSString* appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
       NSDictionary *nowPlayingInfo = [NSDictionary dictionaryWithObjectsAndKeys:
                                       self.currentSong ? self.currentSong : @"", MPMediaItemPropertyAlbumTitle,
