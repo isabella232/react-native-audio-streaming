@@ -9,11 +9,10 @@
 
 @property (nonatomic, strong) STKAudioPlayer *audioPlayer;
 @property (nonatomic, readwrite) BOOL isPlayingWithOthers;
-@property (nonatomic, readwrite) BOOL showNowPlayingInfo;
 @property (nonatomic, readwrite) NSString *lastUrlString;
 @property (nonatomic, retain) NSString *currentSong;
 
-- (void)play:(NSString *) streamUrl options:(NSDictionary *)options;
+- (void)play:(NSString *) streamUrl;
 - (void)pause;
 
 @end
