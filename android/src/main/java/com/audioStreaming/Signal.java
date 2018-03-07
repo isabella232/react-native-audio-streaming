@@ -5,6 +5,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -12,8 +13,6 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
-import android.telephony.PhoneStateListener;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.google.android.exoplayer2.ExoPlaybackException;
@@ -37,32 +36,71 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 public class Signal extends Service implements ExoPlayer.EventListener, MetadataRenderer.Output, ExtractorMediaSource.EventListener {
     private static final String TAG = "ReactNative";
 
-    // Notification
-    private Class<?> clsActivity;
-
     // Player
     private SimpleExoPlayer player = null;
 
-    public static final String BROADCAST_PLAYBACK_STOP = "stop",
-            BROADCAST_PLAYBACK_PLAY = "pause",
-            BROADCAST_EXIT = "exit";
+    private static final String BROADCAST_PLAYBACK_STOP = "stop";
+    public static final String BROADCAST_PLAYBACK_PLAY = "pause";
+    public static final String BROADCAST_EXIT = "exit";
 
     private final IBinder binder = new RadioBinder();
     private final SignalReceiver receiver = new SignalReceiver(this);
     private Context context;
     private String streamingURL;
-    private EventsReceiver eventsReceiver;
-    private ReactNativeAudioStreamingModule module;
 
-    private TelephonyManager phoneManager;
-    private PhoneListener phoneStateListener;
-
-    private Handler handler = new Handler();
+    // private Handler handler = new Handler();
+    private final Handler mHandler = new Handler();
     private Runnable runnable;
+
+    private final AudioManager.OnAudioFocusChangeListener afChangeListener =
+            new AudioManager.OnAudioFocusChangeListener() {
+                public void onAudioFocusChange(int focusChange) {
+                    if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+                        // Permanent loss of audio focus
+                        // Pause playback immediately
+                        pause();
+                        // Wait 30 seconds before stopping playback
+                        mHandler.postDelayed(mDelayedStopRunnable,
+                                TimeUnit.SECONDS.toMillis(30));
+                    }
+                    else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                        pause();
+                    } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                        // Lower the volume, keep playing
+                    } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+                        // Your app has been granted audio focus again
+                        // Raise volume to normal, restart playback if necessary
+                        resume();
+                    }
+                }
+            };
+
+    private final Runnable mDelayedStopRunnable = new Runnable() {
+        @Override
+        public void run() {
+            stop();
+        }
+    };
+
+    private final Runnable mProgressTickRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if ( (player != null) && (player.getPlaybackState() == ExoPlayer.STATE_READY) && player.getPlayWhenReady() ) {
+                double position = (getCurrentPosition() / 1000);
+                double duration = (getDuration() / 1000);
+                Intent StreamingIntent = new Intent(Mode.STREAMING);
+                StreamingIntent.putExtra("progress", position);
+                StreamingIntent.putExtra("duration", duration);
+                sendBroadcast(StreamingIntent);
+                mHandler.postDelayed(mProgressTickRunnable, 1000);
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
@@ -85,33 +123,27 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
 
     public void setData(Context context, ReactNativeAudioStreamingModule module) {
         this.context = context;
-        this.clsActivity = module.getClassActivity();
-        this.module = module;
+        Class<?> clsActivity = module.getClassActivity();
+        ReactNativeAudioStreamingModule module1 = module;
 
-        this.eventsReceiver = new EventsReceiver(this.module);
+        EventsReceiver eventsReceiver = new EventsReceiver(module1);
 
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.CREATED));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.IDLE));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.DESTROYED));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.STARTED));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.CONNECTING));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.PLAYING));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.READY));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.STOPPED));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.PAUSED));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.COMPLETED));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.ERROR));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.BUFFERING_START));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.BUFFERING_END));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.METADATA_UPDATED));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.ALBUM_UPDATED));
-        registerReceiver(this.eventsReceiver, new IntentFilter(Mode.STREAMING));
-
-        this.phoneStateListener = new PhoneListener(this.module);
-        this.phoneManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
-        if ( this.phoneManager != null ) {
-            this.phoneManager.listen(this.phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
-        }
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.CREATED));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.IDLE));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.DESTROYED));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.STARTED));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.CONNECTING));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.PLAYING));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.READY));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.STOPPED));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.PAUSED));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.COMPLETED));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.ERROR));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.BUFFERING_START));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.BUFFERING_END));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.METADATA_UPDATED));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.ALBUM_UPDATED));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.STREAMING));
     }
 
     @Override
@@ -122,7 +154,7 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
         Log.d("onPlayerStateChanged", "" + playbackState);
-
+        removeProgressListener();
         addProgressListener();
 
         switch (playbackState) {
@@ -190,27 +222,12 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     }
 
     private void addProgressListener() {
-        runnable = new Runnable() {
-            @Override
-            public void run() {
-                if ( (player != null) && (player.getPlaybackState() == ExoPlayer.STATE_READY) && player.getPlayWhenReady() ) {
-                    double position = (getCurrentPosition() / 1000);
-                    double duration = (getDuration() / 1000);
-                    Intent StreamingIntent = new Intent(Mode.STREAMING);
-                    StreamingIntent.putExtra("progress", position);
-                    StreamingIntent.putExtra("duration", duration);
-                    sendBroadcast(StreamingIntent);
-                    handler.postDelayed(runnable, 1000);
-                }
-            }
-        };
-        handler.postDelayed(runnable, 0);
+        mHandler.postDelayed(mProgressTickRunnable, 0);
     }
 
     private void removeProgressListener() {
         Log.i(TAG, "removeProgressListner");
-        handler.removeCallbacks(runnable);
-        runnable = null;
+        mHandler.removeCallbacks(mProgressTickRunnable);
     }
 
     /**
@@ -242,6 +259,11 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
         player.prepare(audioSource);
         player.addListener(this);
         player.setPlayWhenReady(playWhenReady);
+
+        // Start listening to audio focus
+        AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        assert am != null;
+        am.requestAudioFocus(afChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
     }
 
     public void start() {
@@ -275,11 +297,11 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     }
 
     public long getDuration() {
-        return player != null ? player.getDuration() : new Long(0);
+        return player != null ? player.getDuration() : Long.valueOf(0);
     }
 
     public long getCurrentPosition() {
-        return player != null ? player.getCurrentPosition() : new Long(0);
+        return player != null ? player.getCurrentPosition() : Long.valueOf(0);
     }
 
     public int getBufferPercentage() {
@@ -322,7 +344,7 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
 
     public boolean isConnected() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        NetworkInfo netInfo = cm != null ? cm.getActiveNetworkInfo() : null;
         return netInfo != null && netInfo.isConnectedOrConnecting();
     }
 

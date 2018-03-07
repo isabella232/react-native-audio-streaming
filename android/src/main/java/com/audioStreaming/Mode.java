@@ -1,22 +1,22 @@
 package com.audioStreaming;
 
-public class Mode {
-    public static String CREATED = "CREATED";
-    public static String CONNECTING = "CONNECTING";
+class Mode {
+    public static final String CREATED = "CREATED";
+    public static final String CONNECTING = "CONNECTING";
     public static String PREPARING = "PREPARING";
-    public static String READY = "READY";
-    public static String STARTED = "STARTED";
-    public static String PLAYING = "PLAYING";
-    public static String STOPPED = "STOPPED";
-    public static String PAUSED = "PAUSED";
+    public static final String READY = "READY";
+    public static final String STARTED = "STARTED";
+    public static final String PLAYING = "PLAYING";
+    public static final String STOPPED = "STOPPED";
+    public static final String PAUSED = "PAUSED";
     public static String RESUMED = "RESUMED";
-    public static String COMPLETED = "COMPLETED";
-    public static String ERROR = "ERROR";
-    public static String BUFFERING_START = "BUFFERING_START";
-    public static String BUFFERING_END = "BUFFERING_END";
-    public static String METADATA_UPDATED = "METADATA_UPDATED";
-    public static String ALBUM_UPDATED = "ALBUM_UPDATED";
-    public static String DESTROYED = "DESTROYED";
-    public static String IDLE = "IDLE";
-    public static String STREAMING = "STREAMING";
+    public static final String COMPLETED = "COMPLETED";
+    public static final String ERROR = "ERROR";
+    public static final String BUFFERING_START = "BUFFERING_START";
+    public static final String BUFFERING_END = "BUFFERING_END";
+    public static final String METADATA_UPDATED = "METADATA_UPDATED";
+    public static final String ALBUM_UPDATED = "ALBUM_UPDATED";
+    public static final String DESTROYED = "DESTROYED";
+    public static final String IDLE = "IDLE";
+    public static final String STREAMING = "STREAMING";
 }

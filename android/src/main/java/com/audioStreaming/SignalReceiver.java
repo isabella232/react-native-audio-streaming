@@ -3,10 +3,11 @@ package com.audioStreaming;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
+
+import java.util.Objects;
 
 class SignalReceiver extends BroadcastReceiver {
-    private Signal signal;
+    private final Signal signal;
 
     public SignalReceiver(Signal signal) {
         super();
@@ -17,7 +18,7 @@ class SignalReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
 
-        if (action.equals(Signal.BROADCAST_PLAYBACK_PLAY)) {
+        if ( Objects.equals(action, Signal.BROADCAST_PLAYBACK_PLAY) ) {
             if (!this.signal.isPlaying()) {
                 this.signal.resume();
             } else {

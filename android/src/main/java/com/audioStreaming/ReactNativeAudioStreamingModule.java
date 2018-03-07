@@ -12,21 +12,19 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import javax.annotation.Nullable;
 import android.app.Activity;
 
-public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
+class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     implements ServiceConnection {
     
   public static final String SHOULD_SHOW_NOTIFICATION = "showInAndroidNotifications";
-  private ReactApplicationContext context;
+  private final ReactApplicationContext context;
     
   private Class<?> clsActivity;
   private static Signal signal;
-  private Intent bindIntent;
   private boolean shouldShowNotification;
     
     
@@ -48,7 +46,7 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
   }
     
   public void stopOncall() {
-    this.signal.stop();
+    signal.stop();
   }
     
   public Signal getSignal() {
@@ -68,7 +66,7 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     super.initialize();
         
     try {
-      bindIntent = new Intent(this.context, Signal.class);
+      Intent bindIntent = new Intent(this.context, Signal.class);
       this.context.bindService(bindIntent, this, Context.BIND_AUTO_CREATE);
     } catch (Exception e) {
       Log.e("ERROR", e.getMessage());
@@ -92,7 +90,8 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     
   private void playInternal(String streamingURL) { signal.play(streamingURL); }
     
-  @ReactMethod public void stop() {
+  @ReactMethod
+  private void stop() {
     signal.stop();
   }
     

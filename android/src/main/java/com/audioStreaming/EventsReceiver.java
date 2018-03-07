@@ -7,9 +7,11 @@ import android.content.Intent;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 
+import java.util.Objects;
+
 
 public class EventsReceiver extends BroadcastReceiver {
-    private ReactNativeAudioStreamingModule module;
+    private final ReactNativeAudioStreamingModule module;
 
     public EventsReceiver(ReactNativeAudioStreamingModule module) {
         this.module = module;
@@ -20,7 +22,7 @@ public class EventsReceiver extends BroadcastReceiver {
         WritableMap params = Arguments.createMap();
         params.putString("status", intent.getAction());
 
-        if (intent.getAction().equals(Mode.METADATA_UPDATED)) {
+        if ( Objects.equals(intent.getAction(), Mode.METADATA_UPDATED) ) {
             params.putString("key", intent.getStringExtra("key"));
             params.putString("value", intent.getStringExtra("value"));
         }
