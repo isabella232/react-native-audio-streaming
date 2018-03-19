@@ -52,8 +52,6 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     private final SignalReceiver receiver = new SignalReceiver(this);
     private Context context;
     private String streamingURL;
-
-    // private Handler handler = new Handler();
     private final Handler mHandler = new Handler();
     private Runnable runnable;
 
@@ -139,7 +137,7 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
         registerReceiver(eventsReceiver, new IntentFilter(Mode.PAUSED));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.COMPLETED));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.ERROR));
-        registerReceiver(eventsReceiver, new IntentFilter(Mode.BUFFERING_START));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.BUFFERING));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.BUFFERING_END));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.METADATA_UPDATED));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.ALBUM_UPDATED));
@@ -153,30 +151,31 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
 
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-        Log.d("onPlayerStateChanged", "" + playbackState);
+
         removeProgressListener();
-        addProgressListener();
 
         switch (playbackState) {
             case ExoPlayer.STATE_IDLE:
                 sendBroadcast(new Intent(Mode.IDLE));
                 break;
             case ExoPlayer.STATE_BUFFERING:
-
-                sendBroadcast(new Intent(Mode.BUFFERING_START));
+                sendBroadcast(new Intent(Mode.BUFFERING));
                 break;
             case ExoPlayer.STATE_READY:
                 if ( this.player != null && this.player.getPlayWhenReady() ) {
                     sendBroadcast(new Intent(Mode.PLAYING));
+                    addProgressListener();
                 } else {
                     sendBroadcast(new Intent(Mode.READY));
                 }
                 break;
             case ExoPlayer.STATE_ENDED:
-                sendBroadcast(new Intent(Mode.STOPPED));
+                if (this.player != null) {
+                    sendBroadcast(new Intent(Mode.STOPPED));
+                }
                 break;
         }
-
+        Log.d("onPlayerStateChanged", "" + playbackState + ":" + this.player.getPlaybackState());
     }
 
     @Override
@@ -226,7 +225,6 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     }
 
     private void removeProgressListener() {
-        Log.i(TAG, "removeProgressListner");
         mHandler.removeCallbacks(mProgressTickRunnable);
     }
 
@@ -275,7 +273,6 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     public void pause() {
         if ( player != null ) {
             player.setPlayWhenReady(false);
-            sendBroadcast(new Intent(Mode.STOPPED));
         }
     }
 
@@ -288,7 +285,6 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     public void stop() {
         if ( player != null ) {
             player.setPlayWhenReady(false);
-            sendBroadcast(new Intent(Mode.STOPPED));
         }
     }
 

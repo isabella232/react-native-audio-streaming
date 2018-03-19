@@ -12,7 +12,7 @@ class Mode {
     public static String RESUMED = "RESUMED";
     public static final String COMPLETED = "COMPLETED";
     public static final String ERROR = "ERROR";
-    public static final String BUFFERING_START = "BUFFERING_START";
+    public static final String BUFFERING = "BUFFERING";
     public static final String BUFFERING_END = "BUFFERING_END";
     public static final String METADATA_UPDATED = "METADATA_UPDATED";
     public static final String ALBUM_UPDATED = "ALBUM_UPDATED";
