@@ -185,7 +185,6 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
 
     @Override
     public void onPlayerError(ExoPlaybackException error) {
-        Log.d(TAG, error.getMessage());
         sendBroadcast(new Intent(Mode.ERROR));
     }
 
