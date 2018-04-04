@@ -39,7 +39,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class Signal extends Service implements ExoPlayer.EventListener, MetadataRenderer.Output, ExtractorMediaSource.EventListener {
-    private static final String TAG = "ReactNative";
+    private static final String TAG = "ReactNativeAudioStreaming";
 
     // Player
     private SimpleExoPlayer player = null;
@@ -185,6 +185,10 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
 
     @Override
     public void onPlayerError(ExoPlaybackException error) {
+        Log.d("onPlayerError", "" + error.getMessage());
+        if(!isConnected()) {
+            Log.d("isConnected", isConnected() ? "true" : "false");
+        }
         sendBroadcast(new Intent(Mode.ERROR));
     }
 
@@ -238,14 +242,25 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
             player.seekTo(0);
         }
 
-        boolean playWhenReady = true; // TODO Allow user to customize this
         this.streamingURL = url;
 
+        boolean playWhenReady = true; // TODO Allow user to customize this
         // Create player
-        Handler mainHandler = new Handler();
         TrackSelector trackSelector = new DefaultTrackSelector();
-        this.player = ExoPlayerFactory.newSimpleInstance(this.getApplicationContext(), trackSelector);
+        player = ExoPlayerFactory.newSimpleInstance(this.getApplicationContext(), trackSelector);
+        player.addListener(this);
 
+        // Start listening to audio focus
+        AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        assert am != null;
+        am.requestAudioFocus(afChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+
+        prepare(playWhenReady);
+    }
+
+    private void prepare(boolean playWhenReady) {
+
+        Handler mainHandler = new Handler();
         // Create source
         ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
         DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
@@ -253,14 +268,8 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
         MediaSource audioSource = new ExtractorMediaSource(Uri.parse(this.streamingURL), dataSourceFactory, extractorsFactory, mainHandler, this);
 
         // Start preparing audio
-        player.prepare(audioSource);
-        player.addListener(this);
+        player.prepare(audioSource, false, false);
         player.setPlayWhenReady(playWhenReady);
-
-        // Start listening to audio focus
-        AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        assert am != null;
-        am.requestAudioFocus(afChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
     }
 
     public void start() {
@@ -277,6 +286,7 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
 
     public void resume() {
         if ( player != null ) {
+            prepare(true);
             player.setPlayWhenReady(true);
         }
     }
