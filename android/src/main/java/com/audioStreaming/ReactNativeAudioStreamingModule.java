@@ -90,8 +90,7 @@ class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     
   private void playInternal(String streamingURL) { signal.play(streamingURL); }
     
-  @ReactMethod
-  private void stop() {
+  @ReactMethod private void stop() {
     signal.stop();
   }
     

@@ -10,7 +10,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Binder;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
@@ -34,14 +33,15 @@ import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.util.Util;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class Signal extends Service implements ExoPlayer.EventListener, MetadataRenderer.Output, ExtractorMediaSource.EventListener {
-    private static final String TAG = "ReactNativeAudioStreaming";
+    private static final String TAG = "RNAudioStreaming";
 
-    // Player
+    private DataSource.Factory dataSourceFactory;
     private SimpleExoPlayer player = null;
 
     private static final String BROADCAST_PLAYBACK_STOP = "stop";
@@ -53,7 +53,6 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     private Context context;
     private String streamingURL;
     private final Handler mHandler = new Handler();
-    private Runnable runnable;
 
     private final AudioManager.OnAudioFocusChangeListener afChangeListener =
             new AudioManager.OnAudioFocusChangeListener() {
@@ -121,10 +120,9 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
 
     public void setData(Context context, ReactNativeAudioStreamingModule module) {
         this.context = context;
-        Class<?> clsActivity = module.getClassActivity();
-        ReactNativeAudioStreamingModule module1 = module;
+        // ReactNativeAudioStreamingModule module1 = module;
 
-        EventsReceiver eventsReceiver = new EventsReceiver(module1);
+        EventsReceiver eventsReceiver = new EventsReceiver(module);
 
         registerReceiver(eventsReceiver, new IntentFilter(Mode.CREATED));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.IDLE));
@@ -175,7 +173,7 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
                 }
                 break;
         }
-        Log.d("onPlayerStateChanged", "" + playbackState + ":" + this.player.getPlaybackState());
+        Log.d("onPlayerStateChanged", "" + playbackState + ":" + (this.player != null ? this.player.getPlaybackState() : 0));
     }
 
     @Override
@@ -195,32 +193,6 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     @Override
     public void onPositionDiscontinuity() {
 
-    }
-
-    private static String getDefaultUserAgent() {
-        StringBuilder result = new StringBuilder(64);
-        result.append("Dalvik/");
-        result.append(System.getProperty("java.vm.version")); // such as 1.1.0
-        result.append(" (Linux; U; Android ");
-
-        String version = Build.VERSION.RELEASE; // "1.0" or "3.4b5"
-        result.append(version.length() > 0 ? version : "1.0");
-
-        // add the model for the release build
-        if ( "REL".equals(Build.VERSION.CODENAME) ) {
-            String model = Build.MODEL;
-            if ( model.length() > 0 ) {
-                result.append("; ");
-                result.append(model);
-            }
-        }
-        String id = Build.ID; // "MASTER" or "M4-rc20"
-        if ( id.length() > 0 ) {
-            result.append(" Build/");
-            result.append(id);
-        }
-        result.append(")");
-        return result.toString();
     }
 
     private void addProgressListener() {
@@ -245,6 +217,7 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
         this.streamingURL = url;
 
         boolean playWhenReady = true; // TODO Allow user to customize this
+
         // Create player
         TrackSelector trackSelector = new DefaultTrackSelector();
         player = ExoPlayerFactory.newSimpleInstance(this.getApplicationContext(), trackSelector);
@@ -255,16 +228,18 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
         assert am != null;
         am.requestAudioFocus(afChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
-        prepare(playWhenReady);
+        prepare(true);
     }
 
     private void prepare(boolean playWhenReady) {
 
         Handler mainHandler = new Handler();
+        String userAgent = Util.getUserAgent(this, "RNAudioStreaming");
+
         // Create source
         ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
         DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-        DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(this.getApplication(), getDefaultUserAgent(), bandwidthMeter);
+        DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(this.getApplication(), userAgent, bandwidthMeter);
         MediaSource audioSource = new ExtractorMediaSource(Uri.parse(this.streamingURL), dataSourceFactory, extractorsFactory, mainHandler, this);
 
         // Start preparing audio
@@ -302,11 +277,11 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     }
 
     public long getDuration() {
-        return player != null ? player.getDuration() : Long.valueOf(0);
+        return player != null ? player.getDuration() : 0L;
     }
 
     public long getCurrentPosition() {
-        return player != null ? player.getCurrentPosition() : Long.valueOf(0);
+        return player != null ? player.getCurrentPosition() : 0L;
     }
 
     public int getBufferPercentage() {
@@ -347,7 +322,7 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
         }
     }
 
-    public boolean isConnected() {
+    private boolean isConnected() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm != null ? cm.getActiveNetworkInfo() : null;
         return netInfo != null && netInfo.isConnectedOrConnecting();
