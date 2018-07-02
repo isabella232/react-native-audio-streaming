@@ -114,6 +114,11 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     }
 
     @Override
+    public void onTimelineChanged(Timeline timeline, Object manifest, int reason) {
+
+    }
+
+    @Override
     public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
 
     }
@@ -140,6 +145,7 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
         registerReceiver(eventsReceiver, new IntentFilter(Mode.METADATA_UPDATED));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.ALBUM_UPDATED));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.STREAMING));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.DISCONNECTED));
     }
 
     @Override
@@ -173,26 +179,34 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
                 }
                 break;
         }
-        Log.d("onPlayerStateChanged", "" + playbackState + ":" + (this.player != null ? this.player.getPlaybackState() : 0));
     }
 
     @Override
-    public void onTimelineChanged(Timeline timeline, Object manifest) {
+    public void onRepeatModeChanged(int repeatMode) {
+
     }
 
+    @Override
+    public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
+
+    }
 
     @Override
     public void onPlayerError(ExoPlaybackException error) {
-        Log.d("onPlayerError", "" + error.getMessage());
-        if(!isConnected()) {
-            Log.d("isConnected", isConnected() ? "true" : "false");
-        }
-        sendBroadcast(new Intent(Mode.ERROR));
     }
 
     @Override
-    public void onPositionDiscontinuity() {
+    public void onPositionDiscontinuity(int reason) {
 
+    }
+
+    @Override
+    public void onSeekProcessed() {
+
+    }
+
+    @Override
+    public void onLoadError(IOException error) {
     }
 
     private void addProgressListener() {
@@ -325,6 +339,7 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     private boolean isConnected() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm != null ? cm.getActiveNetworkInfo() : null;
+        Log.e(TAG, "isConnected: " + (netInfo != null && netInfo.isConnected()));
         return netInfo != null && netInfo.isConnectedOrConnecting();
     }
 
@@ -372,11 +387,6 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
 
     public String getStreamingURL() {
         return this.streamingURL;
-    }
-
-    @Override
-    public void onLoadError(IOException error) {
-        Log.e(TAG, error.getMessage());
     }
 
 }

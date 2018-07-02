@@ -19,15 +19,13 @@ import android.app.Activity;
 
 class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     implements ServiceConnection {
-    
-  public static final String SHOULD_SHOW_NOTIFICATION = "showInAndroidNotifications";
+
   private final ReactApplicationContext context;
     
   private Class<?> clsActivity;
   private static Signal signal;
-  private boolean shouldShowNotification;
-    
-    
+
+
   public ReactNativeAudioStreamingModule(ReactApplicationContext reactContext) {
     super(reactContext);
     this.context = reactContext;
