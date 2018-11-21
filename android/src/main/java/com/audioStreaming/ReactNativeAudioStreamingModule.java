@@ -95,7 +95,7 @@ class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     signal.stop();
   }
     
-  @ReactMethod public void pause() { this.stop(); }
+  @ReactMethod public void pause() { signal.pause(); }
     
   @ReactMethod public void resume() { signal.resume(); }
 

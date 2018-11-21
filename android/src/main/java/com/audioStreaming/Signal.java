@@ -38,7 +38,8 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-public class Signal extends Service implements ExoPlayer.EventListener, MetadataRenderer.Output, ExtractorMediaSource.EventListener {
+public class Signal extends Service
+        implements ExoPlayer.EventListener, MetadataRenderer.Output, ExtractorMediaSource.EventListener {
     private static final String TAG = "ReactNative";
 
     // Player
@@ -55,28 +56,34 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     private final Handler mHandler = new Handler();
     private Runnable runnable;
 
-    private final AudioManager.OnAudioFocusChangeListener afChangeListener =
-            new AudioManager.OnAudioFocusChangeListener() {
-                public void onAudioFocusChange(int focusChange) {
-                    if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
-                        // Permanent loss of audio focus
-                        // Pause playback immediately
-                        pause();
-                        // Wait 30 seconds before stopping playback
-                        mHandler.postDelayed(mDelayedStopRunnable,
-                                TimeUnit.SECONDS.toMillis(30));
-                    }
-                    else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-                        pause();
-                    } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-                        // Lower the volume, keep playing
-                    } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
-                        // Your app has been granted audio focus again
-                        // Raise volume to normal, restart playback if necessary
-                        resume();
-                    }
+    private final AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+        public void onAudioFocusChange(int focusChange) {
+
+            if (focusChange == AudioManager.AUDIOFOCUS_LOSS && isPlaying()) {
+                // Permanent loss of audio focus
+                // Pause playback immediately
+
+                pause();
+                // Wait 30 seconds before stopping playback
+                mHandler.postDelayed(mDelayedStopRunnable, TimeUnit.SECONDS.toMillis(30));
+
+            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                pause();
+            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                // Lower the volume, keep playing
+                player.setVolume(0.4f);
+            } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN && isReady()) {
+                // Your app has been granted audio focus again
+                // Raise volume to normal, restart playback if necessary
+                if (player.getVolume() != 1) {
+                    player.setVolume(1);
                 }
-            };
+                if (!isPlaying()) {
+                    resume();
+                }
+            }
+        }
+    };
 
     private final Runnable mDelayedStopRunnable = new Runnable() {
         @Override
@@ -88,7 +95,7 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     private final Runnable mProgressTickRunnable = new Runnable() {
         @Override
         public void run() {
-            if ( (player != null) && (player.getPlaybackState() == ExoPlayer.STATE_READY) && player.getPlayWhenReady() ) {
+            if ( ( player != null ) && (player.getPlaybackState() == ExoPlayer.STATE_READY) && player.getPlayWhenReady() ) {
                 double position = (getCurrentPosition() / 1000);
                 double duration = (getDuration() / 1000);
                 Intent StreamingIntent = new Intent(Mode.STREAMING);
@@ -155,25 +162,25 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
         removeProgressListener();
 
         switch (playbackState) {
-            case ExoPlayer.STATE_IDLE:
-                sendBroadcast(new Intent(Mode.IDLE));
-                break;
-            case ExoPlayer.STATE_BUFFERING:
-                sendBroadcast(new Intent(Mode.BUFFERING));
-                break;
-            case ExoPlayer.STATE_READY:
-                if ( this.player != null && this.player.getPlayWhenReady() ) {
-                    sendBroadcast(new Intent(Mode.PLAYING));
-                    addProgressListener();
-                } else {
-                    sendBroadcast(new Intent(Mode.READY));
-                }
-                break;
-            case ExoPlayer.STATE_ENDED:
-                if (this.player != null) {
-                    sendBroadcast(new Intent(Mode.STOPPED));
-                }
-                break;
+        case ExoPlayer.STATE_IDLE:
+            sendBroadcast(new Intent(Mode.IDLE));
+            break;
+        case ExoPlayer.STATE_BUFFERING:
+            sendBroadcast(new Intent(Mode.BUFFERING));
+            break;
+        case ExoPlayer.STATE_READY:
+            if ( this.player != null && this.player.getPlayWhenReady() ) {
+                sendBroadcast(new Intent(Mode.PLAYING));
+                addProgressListener();
+            } else {
+                sendBroadcast(new Intent(Mode.READY));
+            }
+            break;
+        case ExoPlayer.STATE_ENDED:
+            if (this.player != null) {
+                sendBroadcast(new Intent(Mode.STOPPED));
+            }
+            break;
         }
         Log.d("onPlayerStateChanged", "" + playbackState + ":" + this.player.getPlaybackState());
     }
@@ -181,7 +188,6 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
     @Override
     public void onTimelineChanged(Timeline timeline, Object manifest) {
     }
-
 
     @Override
     public void onPlayerError(ExoPlaybackException error) {
@@ -235,7 +241,6 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
         if ( player != null ) {
             player.setPlayWhenReady(false);
             player.stop();
-            player.seekTo(0);
         }
 
         boolean playWhenReady = true; // TODO Allow user to customize this
@@ -246,11 +251,17 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
         TrackSelector trackSelector = new DefaultTrackSelector();
         this.player = ExoPlayerFactory.newSimpleInstance(this.getApplicationContext(), trackSelector);
 
+        if (player.getVolume() != 1) {
+            player.setVolume(1);
+        }
+
         // Create source
         ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
         DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-        DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(this.getApplication(), getDefaultUserAgent(), bandwidthMeter);
-        MediaSource audioSource = new ExtractorMediaSource(Uri.parse(this.streamingURL), dataSourceFactory, extractorsFactory, mainHandler, this);
+        DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(this.getApplication(),
+                getDefaultUserAgent(), bandwidthMeter);
+        MediaSource audioSource = new ExtractorMediaSource(Uri.parse(this.streamingURL), dataSourceFactory,
+                extractorsFactory, mainHandler, this);
 
         // Start preparing audio
         player.prepare(audioSource);
@@ -283,12 +294,16 @@ public class Signal extends Service implements ExoPlayer.EventListener, Metadata
 
     public void stop() {
         if ( player != null ) {
-            player.setPlayWhenReady(false);
+            player.stop();
         }
     }
 
     public boolean isPlaying() {
         return player != null && player.getPlayWhenReady() && player.getPlaybackState() != ExoPlayer.STATE_ENDED;
+    }
+
+    public boolean isReady() {
+        return player != null && player.getPlaybackState() == ExoPlayer.STATE_READY;
     }
 
     public long getDuration() {
