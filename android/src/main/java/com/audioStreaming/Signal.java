@@ -45,6 +45,8 @@ public class Signal extends Service
     // Player
     private SimpleExoPlayer player = null;
 
+    private Boolean lostFocus = false;
+
     private static final String BROADCAST_PLAYBACK_STOP = "stop";
     public static final String BROADCAST_PLAYBACK_PLAY = "pause";
     public static final String BROADCAST_EXIT = "exit";
@@ -62,13 +64,18 @@ public class Signal extends Service
             if (focusChange == AudioManager.AUDIOFOCUS_LOSS && isPlaying()) {
                 // Permanent loss of audio focus
                 // Pause playback immediately
-
-                pause();
+                if (isPlaying()) {
+                    lostFocus = true;
+                    pause();
+                }
                 // Wait 30 seconds before stopping playback
                 mHandler.postDelayed(mDelayedStopRunnable, TimeUnit.SECONDS.toMillis(30));
 
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-                pause();
+                if (isPlaying()) {
+                    lostFocus = true;
+                    pause();
+                }
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
                 // Lower the volume, keep playing
                 player.setVolume(0.4f);
@@ -78,9 +85,10 @@ public class Signal extends Service
                 if (player.getVolume() != 1) {
                     player.setVolume(1);
                 }
-                if (!isPlaying()) {
+                if (!isPlaying() && lostFocus) {
                     resume();
                 }
+                lostFocus = false;
             }
         }
     };
