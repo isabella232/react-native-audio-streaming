@@ -103,8 +103,8 @@ export default class App extends Component {
         />
         <View style={styles.state}>
           <Text>Status: {this.state.status}</Text>
-          <Text>Progress: {this.state.progress}</Text>
-          <Text>Duration: {this.state.duration}</Text>
+          <Text>Progress: {Math.round(this.state.progress)}</Text>
+          <Text>Duration: {Math.round(this.state.duration)}</Text>
         </View>
         <View style={styles.player}>
           <View style={styles.item}>
