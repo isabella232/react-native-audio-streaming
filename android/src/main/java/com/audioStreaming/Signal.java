@@ -61,7 +61,7 @@ public class Signal extends Service
     private final AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
         public void onAudioFocusChange(int focusChange) {
 
-            if (focusChange == AudioManager.AUDIOFOCUS_LOSS && isPlaying()) {
+            if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
                 // Permanent loss of audio focus
                 // Pause playback immediately
                 if (isPlaying()) {
@@ -78,6 +78,7 @@ public class Signal extends Service
                 }
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
                 // Lower the volume, keep playing
+                // Applies to below Android 8.0
                 player.setVolume(0.4f);
             } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN && isReady()) {
                 // Your app has been granted audio focus again
