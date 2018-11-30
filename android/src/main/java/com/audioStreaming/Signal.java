@@ -60,17 +60,14 @@ public class Signal extends Service
 
     private final AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
         public void onAudioFocusChange(int focusChange) {
-
             if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
                 // Permanent loss of audio focus
-                // Pause playback immediately
                 if (isPlaying()) {
                     lostFocus = true;
-                    pause();
+                    stop();
                 }
                 // Wait 30 seconds before stopping playback
-                mHandler.postDelayed(mDelayedStopRunnable, TimeUnit.SECONDS.toMillis(30));
-
+                // mHandler.postDelayed(mDelayedStopRunnable, TimeUnit.SECONDS.toMillis(30));
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
                 if (isPlaying()) {
                     lostFocus = true;
@@ -78,7 +75,6 @@ public class Signal extends Service
                 }
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
                 // Lower the volume, keep playing
-                // Applies to below Android 8.0
                 player.setVolume(0.4f);
             } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN && isReady()) {
                 // Your app has been granted audio focus again
@@ -104,7 +100,7 @@ public class Signal extends Service
     private final Runnable mProgressTickRunnable = new Runnable() {
         @Override
         public void run() {
-            if ( ( player != null ) && (player.getPlaybackState() == ExoPlayer.STATE_READY) && player.getPlayWhenReady() ) {
+            if ((player != null) && (player.getPlaybackState() == ExoPlayer.STATE_READY) && player.getPlayWhenReady()) {
                 double position = (getCurrentPosition() / 1000);
                 double duration = (getDuration() / 1000);
                 Intent StreamingIntent = new Intent(Mode.STREAMING);
@@ -178,7 +174,7 @@ public class Signal extends Service
             sendBroadcast(new Intent(Mode.BUFFERING));
             break;
         case ExoPlayer.STATE_READY:
-            if ( this.player != null && this.player.getPlayWhenReady() ) {
+            if (this.player != null && this.player.getPlayWhenReady()) {
                 sendBroadcast(new Intent(Mode.PLAYING));
                 addProgressListener();
             } else {
@@ -187,7 +183,7 @@ public class Signal extends Service
             break;
         case ExoPlayer.STATE_ENDED:
             if (this.player != null) {
-                sendBroadcast(new Intent(Mode.STOPPED));
+                sendBroadcast(new Intent(Mode.COMPLETED));
             }
             break;
         }
@@ -218,15 +214,15 @@ public class Signal extends Service
         result.append(version.length() > 0 ? version : "1.0");
 
         // add the model for the release build
-        if ( "REL".equals(Build.VERSION.CODENAME) ) {
+        if ("REL".equals(Build.VERSION.CODENAME)) {
             String model = Build.MODEL;
-            if ( model.length() > 0 ) {
+            if (model.length() > 0) {
                 result.append("; ");
                 result.append(model);
             }
         }
         String id = Build.ID; // "MASTER" or "M4-rc20"
-        if ( id.length() > 0 ) {
+        if (id.length() > 0) {
             result.append(" Build/");
             result.append(id);
         }
@@ -247,7 +243,7 @@ public class Signal extends Service
      */
 
     public void play(String url) {
-        if ( player != null ) {
+        if (player != null) {
             player.setPlayWhenReady(false);
             player.stop();
         }
@@ -284,25 +280,25 @@ public class Signal extends Service
     }
 
     public void start() {
-        if ( player != null ) {
+        if (player != null) {
             player.setPlayWhenReady(true);
         }
     }
 
     public void pause() {
-        if ( player != null ) {
+        if (player != null) {
             player.setPlayWhenReady(false);
         }
     }
 
     public void resume() {
-        if ( player != null ) {
+        if (player != null) {
             player.setPlayWhenReady(true);
         }
     }
 
     public void stop() {
-        if ( player != null ) {
+        if (player != null) {
             player.stop();
         }
     }
@@ -328,18 +324,18 @@ public class Signal extends Service
     }
 
     public void seekTo(long timeMillis) {
-        if ( player != null ) {
+        if (player != null) {
             player.seekTo(timeMillis);
         }
     }
 
     public void goForward(double seconds) {
-        if ( player != null ) {
+        if (player != null) {
             long progress = getCurrentPosition();
             long duration = getDuration();
             long newTime = (long) (progress + (seconds * 1000));
 
-            if ( duration < newTime ) {
+            if (duration < newTime) {
                 stop();
             } else {
                 seekTo(newTime);
@@ -348,12 +344,12 @@ public class Signal extends Service
     }
 
     public void goBack(double seconds) {
-        if ( player != null ) {
+        if (player != null) {
             long progress = getCurrentPosition();
             long duration = getDuration();
             long newTime = (long) (progress - (seconds * 1000));
 
-            if ( newTime < 0 ) {
+            if (newTime < 0) {
                 seekTo(0);
             } else {
                 seekTo(newTime);
@@ -368,7 +364,7 @@ public class Signal extends Service
     }
 
     public void setPlaybackRate(float speed) {
-        if ( player != null ) {
+        if (player != null) {
             PlaybackParameters pp = new PlaybackParameters(speed, 1);
             player.setPlaybackParameters(pp);
         }
