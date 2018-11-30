@@ -94,6 +94,7 @@ public class Signal extends Service
         @Override
         public void run() {
             stop();
+            lostFocus = false;
         }
     };
 
@@ -247,7 +248,7 @@ public class Signal extends Service
      * Player controls
      */
 
-    public void play(String url) {
+    public void play(String url, long position) {
         if (player != null) {
             player.setPlayWhenReady(false);
             player.stop();
@@ -274,8 +275,11 @@ public class Signal extends Service
                 extractorsFactory, mainHandler, this);
 
         // Start preparing audio
-        player.prepare(audioSource);
+        player.prepare(audioSource, false, true);
         player.addListener(this);
+        if (position != 0.0) {
+            player.seekTo(position);
+        }
         player.setPlayWhenReady(playWhenReady);
 
         // Start listening to audio focus
