@@ -154,6 +154,7 @@ public class Signal extends Service
         registerReceiver(eventsReceiver, new IntentFilter(Mode.METADATA_UPDATED));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.ALBUM_UPDATED));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.STREAMING));
+        registerReceiver(eventsReceiver, new IntentFilter(Mode.LOST_FOCUS));
     }
 
     @Override
@@ -168,7 +169,11 @@ public class Signal extends Service
 
         switch (playbackState) {
         case ExoPlayer.STATE_IDLE:
-            sendBroadcast(new Intent(Mode.IDLE));
+            if (lostFocus) {
+                sendBroadcast(new Intent(Mode.LOST_FOCUS));
+            } else {
+                sendBroadcast(new Intent(Mode.IDLE));
+            }
             break;
         case ExoPlayer.STATE_BUFFERING:
             sendBroadcast(new Intent(Mode.BUFFERING));
