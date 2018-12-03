@@ -152,17 +152,17 @@ Player.propTypes = {
     url: PropTypes.string.isRequired
 };
 
-const create = () => {
-    const play = (url, position) => {
-        if (Platform.OS === 'ios') { RNReactNativeAudioStreaming.play(url) }
-        else { RNReactNativeAudioStreaming.play(url, position) }
-    }
-
-    return {
-        ...RNReactNativeAudioStreaming,
-        play
+const play = (url, position) => {
+    if (Platform.OS === 'ios') {
+        RNReactNativeAudioStreaming.play(url)
+    } else {
+        RNReactNativeAudioStreaming.play(url, position)
     }
 }
 
-const ReactNativeAudioStreaming = create()
+const ReactNativeAudioStreaming = {
+    ...RNReactNativeAudioStreaming,
+    play
+}
+
 export { Player, ReactNativeAudioStreaming }
