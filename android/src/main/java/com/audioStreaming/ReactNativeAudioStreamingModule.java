@@ -86,13 +86,13 @@ class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule impleme
   }
 
   @ReactMethod
-  public void play(String streamingURL, int position) {
-    playInternal(streamingURL, position);
+  public void play(String streamingURL, int seconds) {
+    playInternal(streamingURL, seconds);
   }
 
-  private void playInternal(String streamingURL, int position) {
-    long positionLong = position;
-    signal.play(streamingURL, positionLong);
+  private void playInternal(String streamingURL, int seconds) {
+    long timeMillis = seconds * 1000;
+    signal.play(streamingURL, timeMillis);
   }
 
   @ReactMethod

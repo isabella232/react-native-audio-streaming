@@ -60,7 +60,8 @@ public class Signal extends Service
 
     private final AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
         public void onAudioFocusChange(int focusChange) {
-            if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+
+            if (focusChange == AudioManager.AUDIOFOCUS_LOSS && isPlaying()) {
                 // Permanent loss of audio focus
                 if (isPlaying()) {
                     lostFocus = true;
@@ -68,6 +69,7 @@ public class Signal extends Service
                 }
                 // Wait 30 seconds before stopping playback
                 // mHandler.postDelayed(mDelayedStopRunnable, TimeUnit.SECONDS.toMillis(30));
+
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
                 if (isPlaying()) {
                     lostFocus = true;
@@ -189,7 +191,7 @@ public class Signal extends Service
             break;
         case ExoPlayer.STATE_ENDED:
             if (this.player != null) {
-                sendBroadcast(new Intent(Mode.COMPLETED));
+                sendBroadcast(new Intent(Mode.STOPPED));
             }
             break;
         }
@@ -277,15 +279,17 @@ public class Signal extends Service
         // Start preparing audio
         player.prepare(audioSource, false, true);
         player.addListener(this);
-        if (position != 0.0) {
-            player.seekTo(position);
-        }
+
         player.setPlayWhenReady(playWhenReady);
 
         // Start listening to audio focus
         AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         assert am != null;
         am.requestAudioFocus(afChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+
+        if (position != 0.0) {
+            seekTo(position);
+        }
     }
 
     public void start() {
