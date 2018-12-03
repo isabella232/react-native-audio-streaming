@@ -4,7 +4,7 @@
  * @flow
  */
 
-import React, { Component } from 'react';
+import React, { Component } from 'react'
 import {
   Image,
   StyleSheet,
@@ -54,46 +54,46 @@ const data = [
 ]
 
 export default class App extends Component {
-  state = { status: null, progress: 0.0, duration: 0.0 };
+  state = { status: null, progress: 0.0, duration: 0.0 }
 
   componentDidMount() {
     this.subscription = reactNativeAudioStreamingEmitter.addListener(
       "AudioBridgeEvent",
       event => {
-        let state = { status: event.status };
+        let state = { status: event.status }
         if (event.status === "STREAMING") {
-          state.progress = event.progress;
-          state.duration = event.duration;
+          state.progress = event.progress
+          state.duration = event.duration
         }
-        this.setState(state);
+        this.setState(state)
       }
-    );
+    )
   }
 
   componentWillUnmount() {
-    this.subscription.remove();
-    this.onStop();
+    this.subscription.remove()
+    this.onStop()
   }
 
   renderItem = ({ item, index }) => <View style={styles.item}>      
           <Button onPress={() => this.onPlayStream(item.stream)} title={item.title} />
           <View style={styles.spacing} />
           <Button onPress={() => this.onPlayStream(item.stream, 100)} title='Start at 100 seconds' />
-    </View>;
+    </View>
 
-  onPlayStream = (url, position = 0) => ReactNativeAudioStreaming.play(url, position);
+  onPlayStream = (url, position = 0) => ReactNativeAudioStreaming.play(url, position)
 
-  onPause = () => ReactNativeAudioStreaming.pause();
+  onPause = () => ReactNativeAudioStreaming.pause()
 
-  onResume = () => ReactNativeAudioStreaming.resume();
+  onResume = () => ReactNativeAudioStreaming.resume()
 
-  onStop = () => ReactNativeAudioStreaming.stop();
+  onStop = () => ReactNativeAudioStreaming.stop()
 
-  onForward = () => ReactNativeAudioStreaming.goForward(15);
+  onForward = () => ReactNativeAudioStreaming.goForward(15)
 
-  onBack = () => ReactNativeAudioStreaming.goBack(15);
+  onBack = () => ReactNativeAudioStreaming.goBack(15)
 
-  onPress = () => false;
+  onPress = () => false
 
   render() {
     return <View style={styles.container}>
@@ -124,7 +124,7 @@ export default class App extends Component {
             <Image source={images.fastForward} />
           </TouchableOpacity>
         </View>
-      </View>;
+      </View>
   }
 }
 
@@ -164,4 +164,4 @@ const styles = StyleSheet.create({
     height: 40,
     margin: 10
   }
-});
+})
