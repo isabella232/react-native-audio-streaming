@@ -6,7 +6,7 @@
 
 import React, { Component } from 'react';
 import {
-  Platform,
+  Image,
   StyleSheet,
   Text,
   View,
@@ -17,6 +17,14 @@ import {
 } from 'react-native'
 
 import { ReactNativeAudioStreaming } from 'react-native-audio-streaming'
+
+images = {
+  play: require('./icons/play.png'),
+  stop: require('./icons/stop.png'),
+  fastForward: require('./icons/fast_forward.png'),
+  fastRewind: require('./icons/fast_rewind.png'),
+  pause: require('./icons/pause.png'),
+}
 
 const reactNativeAudioStreamingEmitter = new NativeEventEmitter(
   ReactNativeAudioStreaming
@@ -46,100 +54,77 @@ const data = [
 ]
 
 export default class App extends Component {
-  state = {
-    status: null,
-    progress: 0.0,
-    duration: 0.0
-  }
+  state = { status: null, progress: 0.0, duration: 0.0 };
 
-  componentDidMount () {
+  componentDidMount() {
     this.subscription = reactNativeAudioStreamingEmitter.addListener(
-      'AudioBridgeEvent',
+      "AudioBridgeEvent",
       event => {
-        let state = {status: event.status}
-        if (event.status === 'STREAMING') {
-          state.progress = event.progress
-          state.duration = event.duration
+        let state = { status: event.status };
+        if (event.status === "STREAMING") {
+          state.progress = event.progress;
+          state.duration = event.duration;
         }
-        this.setState(state)
+        this.setState(state);
       }
-    )
+    );
   }
 
   componentWillUnmount() {
-    this.subscription.remove()
-    this.onStop()
+    this.subscription.remove();
+    this.onStop();
   }
 
-  renderItem = ({item}) => (
-    <View style={styles.item}>
-      <Button
-        onPress={() => this.onPlayStream(item.stream)}
-        title={item.title}
-      />
-    </View>
-  )
+  renderItem = ({ item, index }) => <View style={styles.item}>      
+          <Button onPress={() => this.onPlayStream(item.stream)} title={item.title} />
+          <View style={styles.spacing} />
+          <Button onPress={() => this.onPlayStream(item.stream, 100)} title='Start at 100 seconds' />
+    </View>;
 
-  onPlayStream = (url) => ReactNativeAudioStreaming.play(url)
+  onPlayStream = (url, position = 0) => ReactNativeAudioStreaming.play(url, position);
 
-  onPause = () => ReactNativeAudioStreaming.pause()
+  onPause = () => ReactNativeAudioStreaming.pause();
 
-  onResume = () => ReactNativeAudioStreaming.resume()
+  onResume = () => ReactNativeAudioStreaming.resume();
 
-  onStop = () => ReactNativeAudioStreaming.stop()
+  onStop = () => ReactNativeAudioStreaming.stop();
 
-  onForward = () => ReactNativeAudioStreaming.goForward(15)
+  onForward = () => ReactNativeAudioStreaming.goForward(15);
 
-  onBack = () => ReactNativeAudioStreaming.goBack(15)
+  onBack = () => ReactNativeAudioStreaming.goBack(15);
 
-  onPress = () => false
+  onPress = () => false;
 
   render() {
-    return (
-      <View style={styles.container}>
-        <FlatList
-          data={data}
-          renderItem={this.renderItem}
-        />
+    return <View style={styles.container}>
+        <FlatList data={data} renderItem={this.renderItem} keyExtractor={(item) => item.title } />
         <View style={styles.state}>
           <Text>Status: {this.state.status}</Text>
-          <Text>Progress: {this.state.progress}</Text>
-          <Text>Duration: {this.state.duration}</Text>
+          <Text>
+            Progress: {this.state.progress}
+          </Text>
+          <Text>
+            Duration: {this.state.duration}
+          </Text>
         </View>
-        <View style={styles.player}>
-          <View style={styles.item}>
-            <Button
-              onPress={this.onResume}
-              title="Resume"
-            />
-          </View>
-          <View style={styles.item}>
-            <Button
-              onPress={this.onPause}
-              title="Pause"
-            />
-          </View>
-          <View style={styles.item}>
-            <Button
-              onPress={this.onStop}
-              title="Stop"
-            />
-          </View>
-          <View style={styles.item}>
-            <Button
-              onPress={this.onForward}
-              title="Forward +15s"
-            />
-          </View>
-          <View style={styles.item}>
-            <Button
-              onPress={this.onBack}
-              title="Back -15s"
-            />
-          </View>
+        <View style={[styles.player, styles.item, styles.row]}>
+          <TouchableOpacity style={styles.iconButton} onPress={this.onBack}>
+            <Image source={images.fastRewind} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton} onPress={this.onStop}>
+            <Image source={images.stop} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton} onPress={this.onResume}>
+            <Image source={images.play} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton} onPress={this.onPause}>
+            <Image source={images.pause} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton} onPress={this.onForward}>
+            <Image source={images.fastForward} />
+          </TouchableOpacity>
         </View>
-      </View>
-    );
+      </View>;
   }
 }
 
@@ -165,7 +150,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10
   },
   item: {
-    width: '100%',
-    margin: 5
+    margin: 5,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'center'
+  },
+  spacing: {
+    height: 5,
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    margin: 10
   }
 });
