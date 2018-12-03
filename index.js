@@ -10,7 +10,7 @@ import {
     Platform
 } from 'react-native';
 import PropTypes from 'prop-types';
-const { ReactNativeAudioStreaming } = NativeModules;
+const RNReactNativeAudioStreaming = NativeModules.ReactNativeAudioStreaming;
 
 // Possibles states
 const PLAYING = 'PLAYING';
@@ -41,7 +41,7 @@ class Player extends Component {
             'AudioBridgeEvent', (evt) => {
                 // We just want meta update for song name
                 if (evt.status === METADATA_UPDATED && evt.key === 'StreamTitle') {
-                    this.setState({song: evt.value});
+                    this.setState({ song: evt.value });
                 } else if (evt.status != METADATA_UPDATED) {
                     this.setState(evt);
                 }
@@ -64,7 +64,7 @@ class Player extends Component {
                 break;
             case STOPPED:
             case ERROR:
-                ReactNativeAudioStreaming.play(this.props.url, {showIniOSMediaCenter: true, showInAndroidNotifications: true});
+                ReactNativeAudioStreaming.play(this.props.url, { showIniOSMediaCenter: true, showInAndroidNotifications: true });
                 break;
             case BUFFERING:
                 ReactNativeAudioStreaming.stop();
@@ -89,7 +89,7 @@ class Player extends Component {
             case START_PREPARING:
                 icon = <ActivityIndicator
                     animating={true}
-                    style={{height: 80}}
+                    style={{ height: 80 }}
                     size="large"
                 />;
                 break;
@@ -152,4 +152,17 @@ Player.propTypes = {
     url: PropTypes.string.isRequired
 };
 
+const create = () => {
+    const play = (url, position) => {
+        if (Platform.OS === 'ios') { RNReactNativeAudioStreaming.play(url) }
+        else { RNReactNativeAudioStreaming.play(url, position) }
+    }
+
+    return {
+        ...RNReactNativeAudioStreaming,
+        play
+    }
+}
+
+const ReactNativeAudioStreaming = create()
 export { Player, ReactNativeAudioStreaming }

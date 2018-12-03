@@ -6,6 +6,7 @@
 
 import React, { Component } from 'react'
 import {
+  Platform,
   Image,
   StyleSheet,
   Text,
@@ -54,79 +55,79 @@ const data = [
 ]
 
 export default class App extends Component {
-  state = { status: null, progress: 0.0, duration: 0.0 }
+                 state = { status: null, progress: 0.0, duration: 0.0 }
 
-  componentDidMount() {
-    this.subscription = reactNativeAudioStreamingEmitter.addListener(
-      "AudioBridgeEvent",
-      event => {
-        let state = { status: event.status }
-        if (event.status === "STREAMING") {
-          state.progress = event.progress
-          state.duration = event.duration
-        }
-        this.setState(state)
-      }
-    )
-  }
+                 componentDidMount() {
+                   this.subscription = reactNativeAudioStreamingEmitter.addListener(
+                     "AudioBridgeEvent",
+                     event => {
+                       let state = { status: event.status }
+                       if (event.status === "STREAMING") {
+                         state.progress = event.progress
+                         state.duration = event.duration
+                       }
+                       this.setState(state)
+                     }
+                   )
+                 }
 
-  componentWillUnmount() {
-    this.subscription.remove()
-    this.onStop()
-  }
+                 componentWillUnmount() {
+                   this.subscription.remove()
+                   this.onStop()
+                 }
 
-  renderItem = ({ item, index }) => <View style={styles.item}>      
-          <Button onPress={() => this.onPlayStream(item.stream)} title={item.title} />
-          <View style={styles.spacing} />
-          <Button onPress={() => this.onPlayStream(item.stream, 100)} title='Start at 100 seconds' />
-    </View>
+                 renderItem = ({ item, index }) => <View style={styles.item}>
+                     <Button onPress={() => this.onPlayStream(item.stream)} title={item.title} />
+                     <View style={styles.spacing} />
+                     {Platform.OS === "android" ? <Button onPress={() => this.onPlayStream(item.stream, 100)} title="Start at 100 seconds" /> : null}
+                   </View>
+                 
+                 onPlayStream = (url, position = 0) => ReactNativeAudioStreaming.play(url, position)
+                 
+                 onPause = () => ReactNativeAudioStreaming.pause()
 
-  onPlayStream = (url, position = 0) => ReactNativeAudioStreaming.play(url, position)
+                 onResume = () => ReactNativeAudioStreaming.resume()
 
-  onPause = () => ReactNativeAudioStreaming.pause()
+                 onStop = () => ReactNativeAudioStreaming.stop()
 
-  onResume = () => ReactNativeAudioStreaming.resume()
+                 onForward = () => ReactNativeAudioStreaming.goForward(15)
 
-  onStop = () => ReactNativeAudioStreaming.stop()
+                 onBack = () => ReactNativeAudioStreaming.goBack(15)
 
-  onForward = () => ReactNativeAudioStreaming.goForward(15)
+                 onPress = () => false
 
-  onBack = () => ReactNativeAudioStreaming.goBack(15)
-
-  onPress = () => false
-
-  render() {
-    return <View style={styles.container}>
-        <FlatList data={data} renderItem={this.renderItem} keyExtractor={(item) => item.title } />
-        <View style={styles.state}>
-          <Text>Status: {this.state.status}</Text>
-          <Text>
-            Progress: {this.state.progress}
-          </Text>
-          <Text>
-            Duration: {this.state.duration}
-          </Text>
-        </View>
-        <View style={[styles.player, styles.item, styles.row]}>
-          <TouchableOpacity style={styles.iconButton} onPress={this.onBack}>
-            <Image source={images.fastRewind} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={this.onStop}>
-            <Image source={images.stop} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={this.onResume}>
-            <Image source={images.play} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={this.onPause}>
-            <Image source={images.pause} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={this.onForward}>
-            <Image source={images.fastForward} />
-          </TouchableOpacity>
-        </View>
-      </View>
-  }
-}
+                 render() {
+                   return <View style={styles.container}>
+                       <FlatList data={data} renderItem={this.renderItem} keyExtractor={item => item.title} />
+                       <View style={styles.state}>
+                         <Text>Status: {this.state.status}</Text>
+                         <Text>
+                           Progress: {Math.round(this.state.progress)}
+                         </Text>
+                         <Text>
+                           Duration: {Math.round(this.state.duration)}
+                         </Text>
+                       </View>
+                       <View style={[styles.player, styles.item, styles.row]}>
+                         <TouchableOpacity style={styles.iconButton} onPress={this.onBack}>
+                           <Image source={images.fastRewind} />
+                         </TouchableOpacity>
+                         <TouchableOpacity style={styles.iconButton} onPress={this.onStop}>
+                           <Image source={images.stop} />
+                         </TouchableOpacity>
+                         <TouchableOpacity style={styles.iconButton} onPress={this.onResume}>
+                           <Image source={images.play} />
+                         </TouchableOpacity>
+                         <TouchableOpacity style={styles.iconButton} onPress={this.onPause}>
+                           <Image source={images.pause} />
+                         </TouchableOpacity>
+                         <TouchableOpacity style={styles.iconButton} onPress={this.onForward}>
+                           <Image source={images.fastForward} />
+                         </TouchableOpacity>
+                       </View>
+                     </View>
+                 }
+               }
 
 const styles = StyleSheet.create({
   container: {
