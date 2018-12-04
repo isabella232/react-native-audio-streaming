@@ -17,26 +17,24 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import javax.annotation.Nullable;
 import android.app.Activity;
 
-class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
-    implements ServiceConnection {
-    
+class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule implements ServiceConnection {
+
   public static final String SHOULD_SHOW_NOTIFICATION = "showInAndroidNotifications";
   private final ReactApplicationContext context;
-    
+
   private Class<?> clsActivity;
   private static Signal signal;
   private boolean shouldShowNotification;
-    
-    
+
   public ReactNativeAudioStreamingModule(ReactApplicationContext reactContext) {
     super(reactContext);
     this.context = reactContext;
   }
-    
+
   public ReactApplicationContext getReactApplicationContextModule() {
     return this.context;
   }
-    
+
   public Class<?> getClassActivity() {
     Activity activity = getCurrentActivity();
     if (this.clsActivity == null && activity != null) {
@@ -44,27 +42,28 @@ class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     }
     return this.clsActivity;
   }
-    
+
   public void stopOncall() {
     signal.stop();
   }
-    
+
   public Signal getSignal() {
     return signal;
   }
-    
+
   public void sendEvent(ReactContext reactContext, String eventName, @Nullable WritableMap params) {
-    this.context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-        .emit(eventName, params);
+    this.context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(eventName, params);
   }
-    
-  @Override public String getName() {
+
+  @Override
+  public String getName() {
     return "ReactNativeAudioStreaming";
   }
-    
-  @Override public void initialize() {
+
+  @Override
+  public void initialize() {
     super.initialize();
-        
+
     try {
       Intent bindIntent = new Intent(this.context, Signal.class);
       this.context.bindService(bindIntent, this, Context.BIND_AUTO_CREATE);
@@ -72,42 +71,62 @@ class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
       Log.e("ERROR", e.getMessage());
     }
   }
-    
-  @Override public void onServiceConnected(ComponentName className, IBinder service) {
+
+  @Override
+  public void onServiceConnected(ComponentName className, IBinder service) {
     signal = ((Signal.RadioBinder) service).getService();
     signal.setData(this.context, this);
     WritableMap params = Arguments.createMap();
     sendEvent(this.getReactApplicationContextModule(), "streamingOpen", params);
   }
-    
-  @Override public void onServiceDisconnected(ComponentName className) {
+
+  @Override
+  public void onServiceDisconnected(ComponentName className) {
     signal = null;
   }
-    
-  @ReactMethod public void play(String streamingURL) {
-    playInternal(streamingURL);
+
+  @ReactMethod
+  public void play(String streamingURL, int seconds) {
+    playInternal(streamingURL, seconds);
   }
-    
-  private void playInternal(String streamingURL) { signal.play(streamingURL); }
-    
+
+  private void playInternal(String streamingURL, int seconds) {
+    long timeMillis = seconds * 1000;
+    signal.play(streamingURL, timeMillis);
+  }
+
   @ReactMethod
   private void stop() {
     signal.stop();
   }
-    
-  @ReactMethod public void pause() { this.stop(); }
-    
-  @ReactMethod public void resume() { signal.resume(); }
 
-  @ReactMethod public void seekToTime(int seconds) {
+  @ReactMethod
+  public void pause() {
+    signal.pause();
+  }
+
+  @ReactMethod
+  public void resume() {
+    signal.resume();
+  }
+
+  @ReactMethod
+  public void seekToTime(int seconds) {
     signal.seekTo(seconds * 1000);
   }
 
-  @ReactMethod public void goForward(double seconds) { signal.goForward(seconds); }
+  @ReactMethod
+  public void goForward(double seconds) {
+    signal.goForward(seconds);
+  }
 
-  @ReactMethod public void goBack(double seconds) { signal.goBack(seconds); }
+  @ReactMethod
+  public void goBack(double seconds) {
+    signal.goBack(seconds);
+  }
 
-  @ReactMethod public void getStatus(Callback callback) {
+  @ReactMethod
+  public void getStatus(Callback callback) {
     WritableMap state = Arguments.createMap();
     state.putDouble("duration", signal.getDuration());
     state.putDouble("progress", signal.getCurrentPosition());
@@ -116,7 +135,8 @@ class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     callback.invoke(null, state);
   }
 
-  @ReactMethod public void setCurrentPlaybackRate(float speed) {
+  @ReactMethod
+  public void setCurrentPlaybackRate(float speed) {
     signal.setPlaybackRate(speed);
   }
 }

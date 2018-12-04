@@ -19,4 +19,5 @@ class Mode {
     public static final String DESTROYED = "DESTROYED";
     public static final String IDLE = "IDLE";
     public static final String STREAMING = "STREAMING";
+    public static final String LOST_FOCUS = "LOST_FOCUS";
 }
