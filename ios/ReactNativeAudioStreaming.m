@@ -183,7 +183,7 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 
 - (void)audioPlayer:(STKAudioPlayer *)player didFinishPlayingQueueItemId:(NSObject *)queueItemId withReason:(STKAudioPlayerStopReason)stopReason andProgress:(double)progress andDuration:(double)duration
 {
-   if (stopReason != STKAudioPlayerStopReasonUserAction) {
+   if (stopReason == STKAudioPlayerStopReasonEof || stopReason == STKAudioPlayerStopReasonNone) {
       [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"COMPLETED"}];
    }
 }
