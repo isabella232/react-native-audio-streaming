@@ -191,7 +191,7 @@ public class Signal extends Service
             break;
         case ExoPlayer.STATE_ENDED:
             if (this.player != null) {
-                sendBroadcast(new Intent(Mode.STOPPED));
+                sendBroadcast(new Intent(Mode.COMPLETED));
             }
             break;
         }
