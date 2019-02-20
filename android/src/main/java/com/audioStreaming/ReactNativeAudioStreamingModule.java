@@ -137,7 +137,7 @@ class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule impleme
   }
 
   @ReactMethod
-  public void setCurrentPlaybackRate(float speed) {
+  public void setPlaybackRate(float speed) {
     signal.setPlaybackRate(speed);
   }
 }

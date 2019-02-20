@@ -169,6 +169,12 @@ RCT_EXPORT_METHOD(stop)
    }
 }
 
+RCT_EXPORT_METHOD(setPlaybackRate:(double) speed)
+{
+   return;
+}
+
+
 RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 {
    NSString *status = @"STOPPED";
