@@ -25,11 +25,11 @@ RCT_EXPORT_MODULE()
 {
    self = [super init];
    if (self) {
+      lastUrlString = @"";
+      initialPosition = 0;
+      [self setupAudioPlayer];
+      [self setupTimer];
       [self setSharedAudioSessionCategory];
-      self.audioPlayer = [[STKAudioPlayer alloc] initWithOptions:(STKAudioPlayerOptions){ .flushQueueOnSeek = YES }];
-      [self.audioPlayer setDelegate:self];
-      self.lastUrlString = @"";
-      [NSTimer scheduledTimerWithTimeInterval:0.5 target:self selector:@selector(tick:) userInfo:nil repeats:YES];
 
       NSLog(@"AudioPlayer initialized");
    }
@@ -37,6 +37,21 @@ RCT_EXPORT_MODULE()
    return self;
 }
 
+-(void) setupAudioPlayer
+{
+   if (!self.audioPlayer) {
+      self.audioPlayer = [[STKAudioPlayer alloc] initWithOptions:(STKAudioPlayerOptions){ .flushQueueOnSeek = YES }];
+      self.audioPlayer.delegate = self;
+   }
+}
+
+
+-(void) setupTimer
+{
+   timer = [NSTimer scheduledTimerWithTimeInterval:0.5 target:self selector:@selector(tick:) userInfo:nil repeats:YES];
+   
+   [[NSRunLoop currentRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
+}
 
 -(void) tick:(NSTimer*)timer
 {
@@ -47,22 +62,21 @@ RCT_EXPORT_MODULE()
    if (self.audioPlayer.currentlyPlayingQueueItemId != nil && self.audioPlayer.state == STKAudioPlayerStatePlaying) {
       NSNumber *progress = [NSNumber numberWithFloat:self.audioPlayer.progress];
       NSNumber *duration = [NSNumber numberWithFloat:self.audioPlayer.duration];
-      NSString *url = [NSString stringWithString:self.audioPlayer.currentlyPlayingQueueItemId];
+      NSString *url = lastUrlString;
 
       [self sendEventWithName:@"AudioBridgeEvent" body:@{
-                                                     @"status": @"STREAMING",
-                                                     @"progress": progress,
-                                                     @"duration": duration,
-                                                     @"url": url,
-                                                     }];
+         @"status": @"STREAMING",
+         @"progress": progress,
+         @"duration": duration,
+         @"url": url,
+      }];
    }
 }
 
-
 - (void)dealloc
 {
+   self.audioPlayer.delegate = nil;
    [self unregisterAudioInterruptionNotifications];
-   [self.audioPlayer setDelegate:nil];
 }
 
 
@@ -73,16 +87,17 @@ RCT_EXPORT_METHOD(play:(NSString *) streamUrl position:(double)position)
    if (!self.audioPlayer) {
       return;
    }
-
+   
    [self activate];
-
-   if (self.audioPlayer.state == STKAudioPlayerStatePaused && [self.lastUrlString isEqualToString:streamUrl]) {
+   
+   if (self.audioPlayer.state == STKAudioPlayerStatePaused && [lastUrlString isEqualToString:streamUrl]) {
       [self.audioPlayer resume];
    } else {
       [self.audioPlayer play:streamUrl];
    }
-
-   self.lastUrlString = streamUrl;
+   
+   initialPosition = position;
+   lastUrlString = streamUrl;
 }
 
 RCT_EXPORT_METHOD(seekToTime:(double) seconds)
@@ -170,14 +185,18 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
       status = @"BUFFERING";
    }
 
-   callback(@[[NSNull null], @{@"status": status, @"progress": progress, @"duration": duration, @"url": self.lastUrlString}]);
+   callback(@[[NSNull null], @{@"status": status, @"progress": progress, @"duration": duration, @"url": lastUrlString}]);
 }
 
 #pragma mark - StreamingKit Audio Player
 
-
 - (void)audioPlayer:(STKAudioPlayer *)player didStartPlayingQueueItemId:(NSObject *)queueItemId
 {
+   // if progress is less then initalPosition call seekToTime and then reset initalPosition
+   if(self.audioPlayer.progress < initialPosition) {
+      [self.audioPlayer seekToTime:initialPosition];
+      initialPosition = 0;
+   }
    NSLog(@"AudioPlayer is playing");
 }
 
@@ -188,57 +207,50 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
    }
 }
 
-- (void)audioPlayer:(STKAudioPlayer *)player didFinishBufferingSourceWithQueueItemId:(NSObject *)queueItemId
-{
+-(void) audioPlayer:(STKAudioPlayer*)audioPlayer didFinishBufferingSourceWithQueueItemId:(nonnull NSObject *)queueItemId {
    NSLog(@"AudioPlayer finished buffering");
-}
-
-- (void)audioPlayer:(STKAudioPlayer *)player unexpectedError:(STKAudioPlayerErrorCode)errorCode {
-   NSLog(@"AudioPlayer unexpected Error with code %ld", (long)errorCode);
-}
-
-- (void)audioPlayer:(STKAudioPlayer *)audioPlayer didReadStreamMetadata:(NSDictionary *)dictionary {
-   NSLog(@"AudioPlayer SONG NAME  %@", dictionary[@"StreamTitle"]);
-
-   self.currentSong = dictionary[@"StreamTitle"] ? dictionary[@"StreamTitle"] : @"";
-   [self sendEventWithName:@"AudioBridgeEvent" body:@{
-                                                @"status": @"METADATA_UPDATED",
-                                                @"key": @"StreamTitle",
-                                                @"value": self.currentSong
-                                                }];
 }
 
 - (void)audioPlayer:(STKAudioPlayer *)player stateChanged:(STKAudioPlayerState)state previousState:(STKAudioPlayerState)previousState
 {
    NSNumber *duration = [NSNumber numberWithFloat:self.audioPlayer.duration];
    NSNumber *progress = [NSNumber numberWithFloat:self.audioPlayer.progress];
-
+   
    switch (state) {
       case STKAudioPlayerStatePlaying:
-         [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"PLAYING", @"progress": progress, @"duration": duration, @"url": self.lastUrlString}];
+         [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"PLAYING", @"progress": progress, @"duration": duration, @"url": lastUrlString}];
          break;
-
+         
       case STKAudioPlayerStatePaused:
-         [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"PAUSED", @"progress": progress, @"duration": duration, @"url": self.lastUrlString}];
+         [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"PAUSED", @"progress": progress, @"duration": duration, @"url": lastUrlString}];
          break;
-
+         
       case STKAudioPlayerStateStopped:
-         [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"STOPPED", @"progress": progress, @"duration": duration, @"url": self.lastUrlString}];
+         [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"STOPPED", @"progress": progress, @"duration": duration, @"url": lastUrlString}];
          break;
-
+         
       case STKAudioPlayerStateBuffering:
          [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"BUFFERING"}];
          break;
-
+         
       case STKAudioPlayerStateError:
          [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"ERROR"}];
          break;
-
+         
       default:
          break;
    }
 }
 
+-(void) audioPlayer:(STKAudioPlayer*)audioPlayer unexpectedError:(STKAudioPlayerErrorCode)errorCode
+{
+   NSLog(@"AudioPlayer unexpected Error with code %ld", (long)errorCode);
+}
+
+-(void) audioPlayer:(STKAudioPlayer *)audioPlayer logInfo:(NSString *)line
+{
+   NSLog(@"%@", line);
+}
 
 #pragma mark - Audio Session
 
@@ -268,7 +280,7 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 - (void)setSharedAudioSessionCategory
 {
    NSError *categoryError = nil;
-   self.isPlayingWithOthers = [[AVAudioSession sharedInstance] isOtherAudioPlaying];
+   isPlayingWithOthers = [[AVAudioSession sharedInstance] isOtherAudioPlaying];
 
    [[AVAudioSession sharedInstance] setActive:NO error:&categoryError];
    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&categoryError];
@@ -320,8 +332,8 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 
       case AVAudioSessionInterruptionTypeEnded:
          NSLog(@"Audio Session Interruption case ended.");
-         self.isPlayingWithOthers = [[AVAudioSession sharedInstance] isOtherAudioPlaying];
-         (self.isPlayingWithOthers) ? [self.audioPlayer stop] : [self.audioPlayer resume];
+         isPlayingWithOthers = [[AVAudioSession sharedInstance] isOtherAudioPlaying];
+         (isPlayingWithOthers) ? [self.audioPlayer stop] : [self.audioPlayer resume];
          break;
 
       default:
