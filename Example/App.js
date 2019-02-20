@@ -9,6 +9,7 @@ import {
   NativeEventEmitter,
   TouchableOpacity,
   Button,
+  Picker
 } from 'react-native'
 
 import { ReactNativeAudioStreaming } from 'react-native-audio-streaming'
@@ -49,7 +50,7 @@ const data = [
 ]
 
 export default class App extends Component {
-  state = { status: null, progress: 0.0, duration: 0.0 }
+  state = { status: null, progress: 0.0, duration: 0.0, speed: '0' }
 
   componentDidMount() {
     this.subscription = reactNativeAudioStreamingEmitter.addListener(
@@ -71,9 +72,9 @@ export default class App extends Component {
   }
 
   renderItem = ({ item, index }) => <View style={styles.item}>
-      <Button onPress={() => this.onPlayStream(item.stream, 1800)} title={item.title} />
+      <Button onPress={() => this.onPlayStream(item.stream, 0)} title={item.title} />
       <View style={styles.spacing} />
-      {Platform.OS === "android" ? <Button onPress={() => this.onPlayStream(item.stream, 100)} title="Start at 100 seconds" /> : null}
+      <Button onPress={() => this.onPlayStream(item.stream, 100)} title="Start at 100 seconds" />
     </View>
   
   onPlayStream = (url, position = 0.0) => ReactNativeAudioStreaming.play(url, position)
@@ -87,6 +88,12 @@ export default class App extends Component {
   onForward = () => ReactNativeAudioStreaming.goForward(15)
 
   onBack = () => ReactNativeAudioStreaming.goBack(15)
+
+  onSetPlayerRate = speed => {
+    if (speed) {
+      ReactNativeAudioStreaming.setPlaybackRate(parseFloat(speed))
+    }
+  }
 
   onPress = () => false
 
@@ -119,6 +126,19 @@ export default class App extends Component {
             <Image source={images.fastForward} />
           </TouchableOpacity>
         </View>
+      <Picker
+        selectedValue={this.state.speed}
+        style={{ height: 50, width: 200 }}
+        onValueChange={value => {
+          this.onSetPlayerRate(value)
+          this.setState({ speed: value })
+        }
+        }>
+        <Picker.Item label="0.5x" value="0.5" />
+        <Picker.Item label="1.0x" value="1.0" />
+        <Picker.Item label="1.5x" value="1.5" />
+        <Picker.Item label="2.0x" value="2.0" />
+      </Picker>
       </View>
   }
 }
