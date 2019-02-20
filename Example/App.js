@@ -1,9 +1,3 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- * @flow
- */
-
 import React, { Component } from 'react'
 import {
   Platform,
@@ -77,12 +71,12 @@ export default class App extends Component {
   }
 
   renderItem = ({ item, index }) => <View style={styles.item}>
-      <Button onPress={() => this.onPlayStream(item.stream)} title={item.title} />
+      <Button onPress={() => this.onPlayStream(item.stream, 1800)} title={item.title} />
       <View style={styles.spacing} />
       {Platform.OS === "android" ? <Button onPress={() => this.onPlayStream(item.stream, 100)} title="Start at 100 seconds" /> : null}
     </View>
   
-  onPlayStream = (url, position = 0) => ReactNativeAudioStreaming.play(url, position)
+  onPlayStream = (url, position = 0.0) => ReactNativeAudioStreaming.play(url, position)
   
   onPause = () => ReactNativeAudioStreaming.pause()
 
