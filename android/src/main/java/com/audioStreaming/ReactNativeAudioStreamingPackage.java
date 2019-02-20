@@ -1,8 +1,7 @@
 
 package com.audioStreaming;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -13,22 +12,22 @@ import com.facebook.react.uimanager.ViewManager;
 import com.facebook.react.bridge.JavaScriptModule;
 
 public class ReactNativeAudioStreamingPackage implements ReactPackage {
+
     private Class<?> clsActivity;
 
     @Override
-    public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
-        List<NativeModule> modules = new ArrayList<>();
-        modules.add(new ReactNativeAudioStreamingModule(reactContext));
-        return modules;
-    }
-
-    // Deprecated RN 0.47
-    public List<Class<? extends JavaScriptModule>> createJSModules() {
+    public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
         return Collections.emptyList();
     }
 
+
     @Override
-    public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
-        return Arrays.asList();
+    public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
+        return Collections.<NativeModule>singletonList(new ReactNativeAudioStreamingModule(reactContext));
+    }
+
+    @SuppressWarnings("unused")
+    public List<Class<? extends JavaScriptModule>> createJSModules() {
+        return Collections.emptyList();
     }
 }

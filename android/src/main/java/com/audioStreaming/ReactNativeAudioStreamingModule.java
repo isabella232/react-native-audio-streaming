@@ -26,6 +26,7 @@ class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule impleme
   private static Signal signal;
   private boolean shouldShowNotification;
 
+
   public ReactNativeAudioStreamingModule(ReactApplicationContext reactContext) {
     super(reactContext);
     this.context = reactContext;
