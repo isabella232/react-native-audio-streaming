@@ -13,6 +13,7 @@
    NSString *lastUrlString;
    double initialPosition;
    BOOL isPlayingWithOthers;
+   BOOL requiresSetup;
 }
 
 @property (readwrite, retain) STKAudioPlayer *audioPlayer;

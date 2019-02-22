@@ -21,20 +21,44 @@ RCT_EXPORT_MODULE()
    return dispatch_get_main_queue();
 }
 
++ (BOOL)requiresMainQueueSetup
+{
+   return YES;
+}
+
 - (ReactNativeAudioStreaming *)init
 {
    self = [super init];
    if (self) {
+      requiresSetup = YES;
       lastUrlString = @"";
       initialPosition = 0;
-      [self setupAudioPlayer];
-      [self setupTimer];
-      [self setSharedAudioSessionCategory];
-
+      
       NSLog(@"AudioPlayer initialized");
    }
 
    return self;
+}
+
+-(void) setup
+{
+   if (requiresSetup) {
+      [self setupAudioPlayer];
+      [self setupTimer];
+      [self registerAudioInterruptionNotifications];
+      requiresSetup = NO;
+      
+      NSLog(@"AudioPlayer setup");
+   }
+}
+
+- (void)dealloc
+{
+   self.audioPlayer.delegate = nil;
+   [self unregisterAudioInterruptionNotifications];
+   [timer invalidate];
+   
+   NSLog(@"AudioPlayer dealloc");
 }
 
 -(void) setupAudioPlayer
@@ -42,6 +66,8 @@ RCT_EXPORT_MODULE()
    if (!self.audioPlayer) {
       self.audioPlayer = [[STKAudioPlayer alloc] initWithOptions:(STKAudioPlayerOptions){ .flushQueueOnSeek = YES }];
       self.audioPlayer.delegate = self;
+      
+      NSLog(@"AudioPlayer setup audio player");
    }
 }
 
@@ -51,6 +77,8 @@ RCT_EXPORT_MODULE()
    timer = [NSTimer scheduledTimerWithTimeInterval:0.5 target:self selector:@selector(tick:) userInfo:nil repeats:YES];
    
    [[NSRunLoop currentRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
+   
+   NSLog(@"AudioPlayer setup timer");
 }
 
 -(void) tick:(NSTimer*)timer
@@ -73,17 +101,12 @@ RCT_EXPORT_MODULE()
    }
 }
 
-- (void)dealloc
-{
-   self.audioPlayer.delegate = nil;
-   [self unregisterAudioInterruptionNotifications];
-}
-
-
 #pragma mark - Pubic API
 
 RCT_EXPORT_METHOD(play:(NSString *) streamUrl position:(double)position)
 {
+   [self setup];
+   
    if (!self.audioPlayer) {
       return;
    }
@@ -283,18 +306,6 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
    }
 }
 
-- (void)setSharedAudioSessionCategory
-{
-   NSError *categoryError = nil;
-   isPlayingWithOthers = [[AVAudioSession sharedInstance] isOtherAudioPlaying];
-
-   [[AVAudioSession sharedInstance] setActive:NO error:&categoryError];
-   [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&categoryError];
-
-   if (categoryError) {
-      NSLog(@"Error setting category! %@", [categoryError description]);
-   }
-}
 
 - (void)registerAudioInterruptionNotifications
 {
