@@ -1,6 +1,3 @@
-// AudioManager.h
-// From https://github.com/jhabdas/lumpen-radio/blob/master/iOS/Classes/AudioManager.h
-
 #import <React/RCTBridgeModule.h>
 #import <React/RCTEventEmitter.h>
 #import "STKAudioPlayer.h"

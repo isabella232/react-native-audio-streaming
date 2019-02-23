@@ -33,7 +33,7 @@ RCT_EXPORT_MODULE()
       requiresSetup = YES;
       lastUrlString = @"";
       initialPosition = 0;
-      
+
       NSLog(@"AudioPlayer initialized");
    }
 
@@ -45,9 +45,8 @@ RCT_EXPORT_MODULE()
    if (requiresSetup) {
       [self setupAudioPlayer];
       [self setupTimer];
-      [self registerAudioInterruptionNotifications];
       requiresSetup = NO;
-      
+
       NSLog(@"AudioPlayer setup");
    }
 }
@@ -55,9 +54,8 @@ RCT_EXPORT_MODULE()
 - (void)dealloc
 {
    self.audioPlayer.delegate = nil;
-   [self unregisterAudioInterruptionNotifications];
    [timer invalidate];
-   
+
    NSLog(@"AudioPlayer dealloc");
 }
 
@@ -66,7 +64,7 @@ RCT_EXPORT_MODULE()
    if (!self.audioPlayer) {
       self.audioPlayer = [[STKAudioPlayer alloc] initWithOptions:(STKAudioPlayerOptions){ .flushQueueOnSeek = YES }];
       self.audioPlayer.delegate = self;
-      
+
       NSLog(@"AudioPlayer setup audio player");
    }
 }
@@ -75,9 +73,9 @@ RCT_EXPORT_MODULE()
 -(void) setupTimer
 {
    timer = [NSTimer scheduledTimerWithTimeInterval:0.5 target:self selector:@selector(tick:) userInfo:nil repeats:YES];
-   
+
    [[NSRunLoop currentRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
-   
+
    NSLog(@"AudioPlayer setup timer");
 }
 
@@ -103,36 +101,46 @@ RCT_EXPORT_MODULE()
 
 #pragma mark - Pubic API
 
-RCT_EXPORT_METHOD(play:(NSString *) streamUrl position:(double)position)
+RCT_EXPORT_METHOD(play:(NSString *) streamUrl position:(double)position resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    [self setup];
-   
+
    if (!self.audioPlayer) {
       return;
    }
-   
-   [self activate];
-   
+
    if (self.audioPlayer.state == STKAudioPlayerStatePaused && [lastUrlString isEqualToString:streamUrl]) {
       [self.audioPlayer resume];
    } else {
       [self.audioPlayer play:streamUrl];
    }
-   
+
    initialPosition = position;
    lastUrlString = streamUrl;
+
+   if (self.audioPlayer.state == STKAudioPlayerStateError) {
+      reject(@"error", @"error", nil);
+   }
+
+   resolve(@"success");
 }
 
-RCT_EXPORT_METHOD(seekToTime:(double) seconds)
+RCT_EXPORT_METHOD(seekToTime:(double) seconds resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
       return;
    }
 
    [self.audioPlayer seekToTime:seconds];
+
+   if (self.audioPlayer.state == STKAudioPlayerStateError) {
+      reject(@"error", @"error", nil);
+   }
+
+   resolve(@"success");
 }
 
-RCT_EXPORT_METHOD(goForward:(double) seconds)
+RCT_EXPORT_METHOD(goForward:(double) seconds resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
       return;
@@ -145,9 +153,15 @@ RCT_EXPORT_METHOD(goForward:(double) seconds)
    } else {
       [self.audioPlayer seekToTime:newtime];
    }
+
+   if (self.audioPlayer.state == STKAudioPlayerStateError) {
+      reject(@"error", @"error", nil);
+   }
+
+   resolve(@"success");
 }
 
-RCT_EXPORT_METHOD(goBack:(double) seconds)
+RCT_EXPORT_METHOD(goBack:(double) seconds resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
       return;
@@ -160,39 +174,60 @@ RCT_EXPORT_METHOD(goBack:(double) seconds)
    } else {
       [self.audioPlayer seekToTime:newtime];
    }
+
+   if (self.audioPlayer.state == STKAudioPlayerStateError) {
+      reject(@"error", @"error", nil);
+   }
+
+   resolve(@"success");
 }
 
-RCT_EXPORT_METHOD(pause)
+RCT_EXPORT_METHOD(pause:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
       return;
    } else {
       [self.audioPlayer pause];
-      [self deactivate];
    }
+
+   if (self.audioPlayer.state == STKAudioPlayerStateError) {
+      reject(@"error", @"error", nil);
+   }
+
+   resolve(@"success");
 }
 
-RCT_EXPORT_METHOD(resume)
+RCT_EXPORT_METHOD(resume:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
       return;
    } else {
-      [self activate];
       [self.audioPlayer resume];
    }
+
+   if (self.audioPlayer.state == STKAudioPlayerStateError) {
+      reject(@"error", @"error", nil);
+   }
+
+   resolve(@"success");
 }
 
-RCT_EXPORT_METHOD(stop)
+RCT_EXPORT_METHOD(stop:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
       return;
    } else {
       [self.audioPlayer stop];
-      [self deactivate];
    }
+
+   if (self.audioPlayer.state == STKAudioPlayerStateError) {
+      reject(@"error", @"error", nil);
+   }
+
+   resolve(@"success");
 }
 
-RCT_EXPORT_METHOD(setPlaybackRate:(double) speed)
+RCT_EXPORT_METHOD(setPlaybackRate:(double) speed resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    return;
 }
@@ -244,28 +279,28 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
 {
    NSNumber *duration = [NSNumber numberWithFloat:self.audioPlayer.duration];
    NSNumber *progress = [NSNumber numberWithFloat:self.audioPlayer.progress];
-   
+
    switch (state) {
       case STKAudioPlayerStatePlaying:
          [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"PLAYING", @"progress": progress, @"duration": duration, @"url": lastUrlString}];
          break;
-         
+
       case STKAudioPlayerStatePaused:
          [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"PAUSED", @"progress": progress, @"duration": duration, @"url": lastUrlString}];
          break;
-         
+
       case STKAudioPlayerStateStopped:
          [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"STOPPED", @"progress": progress, @"duration": duration, @"url": lastUrlString}];
          break;
-         
+
       case STKAudioPlayerStateBuffering:
          [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"BUFFERING"}];
          break;
-         
+
       case STKAudioPlayerStateError:
          [self sendEventWithName:@"AudioBridgeEvent" body:@{@"status": @"ERROR"}];
          break;
-         
+
       default:
          break;
    }
@@ -281,125 +316,4 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
    NSLog(@"%@", line);
 }
 
-#pragma mark - Audio Session
-
-- (void)activate
-{
-   NSError *categoryError = nil;
-
-   [[AVAudioSession sharedInstance] setActive:YES error:&categoryError];
-   [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&categoryError];
-
-   if (categoryError) {
-      NSLog(@"Error setting category! %@", [categoryError description]);
-   }
-}
-
-- (void)deactivate
-{
-   NSError *categoryError = nil;
-
-   [[AVAudioSession sharedInstance] setActive:NO error:&categoryError];
-
-   if (categoryError) {
-      NSLog(@"Error setting category! %@", [categoryError description]);
-   }
-}
-
-
-- (void)registerAudioInterruptionNotifications
-{
-   // Register for audio interrupt notifications
-   [[NSNotificationCenter defaultCenter] addObserver:self
-                                            selector:@selector(onAudioInterruption:)
-                                                name:AVAudioSessionInterruptionNotification
-                                              object:nil];
-   // Register for route change notifications
-   [[NSNotificationCenter defaultCenter] addObserver:self
-                                            selector:@selector(onRouteChangeInterruption:)
-                                                name:AVAudioSessionRouteChangeNotification
-                                              object:nil];
-}
-
-- (void)unregisterAudioInterruptionNotifications
-{
-   [[NSNotificationCenter defaultCenter] removeObserver:self
-                                                   name:AVAudioSessionRouteChangeNotification
-                                                 object:nil];
-   [[NSNotificationCenter defaultCenter] removeObserver:self
-                                                   name:AVAudioSessionInterruptionNotification
-                                                 object:nil];
-}
-
-- (void)onAudioInterruption:(NSNotification *)notification
-{
-   // Get the user info dictionary
-   NSDictionary *interruptionDict = notification.userInfo;
-
-   // Get the AVAudioSessionInterruptionTypeKey enum from the dictionary
-   NSInteger interuptionType = [[interruptionDict valueForKey:AVAudioSessionInterruptionTypeKey] integerValue];
-
-   // Decide what to do based on interruption type
-   switch (interuptionType)
-   {
-      case AVAudioSessionInterruptionTypeBegan:
-         NSLog(@"Audio Session Interruption case started.");
-         [self.audioPlayer pause];
-         break;
-
-      case AVAudioSessionInterruptionTypeEnded:
-         NSLog(@"Audio Session Interruption case ended.");
-         isPlayingWithOthers = [[AVAudioSession sharedInstance] isOtherAudioPlaying];
-         (isPlayingWithOthers) ? [self.audioPlayer stop] : [self.audioPlayer resume];
-         break;
-
-      default:
-         NSLog(@"Audio Session Interruption Notification case default.");
-         break;
-   }
-}
-
-- (void)onRouteChangeInterruption:(NSNotification *)notification
-{
-
-   NSDictionary *interruptionDict = notification.userInfo;
-   NSInteger routeChangeReason = [[interruptionDict valueForKey:AVAudioSessionRouteChangeReasonKey] integerValue];
-
-   switch (routeChangeReason)
-   {
-      case AVAudioSessionRouteChangeReasonUnknown:
-         NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonUnknown");
-         break;
-
-      case AVAudioSessionRouteChangeReasonNewDeviceAvailable:
-         // A user action (such as plugging in a headset) has made a preferred audio route available.
-         NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonNewDeviceAvailable");
-         break;
-
-      case AVAudioSessionRouteChangeReasonOldDeviceUnavailable:
-         // The previous audio output path is no longer available.
-         [self.audioPlayer stop];
-         break;
-
-      case AVAudioSessionRouteChangeReasonCategoryChange:
-         // The category of the session object changed. Also used when the session is first activated.
-         NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonCategoryChange"); //AVAudioSessionRouteChangeReasonCategoryChange
-         break;
-
-      case AVAudioSessionRouteChangeReasonOverride:
-         // The output route was overridden by the app.
-         NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonOverride");
-         break;
-
-      case AVAudioSessionRouteChangeReasonWakeFromSleep:
-         // The route changed when the device woke up from sleep.
-         NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonWakeFromSleep");
-         break;
-
-      case AVAudioSessionRouteChangeReasonNoSuitableRouteForCategory:
-         // The route changed because no suitable route is now available for the specified category.
-         NSLog(@"routeChangeReason : AVAudioSessionRouteChangeReasonNoSuitableRouteForCategory");
-         break;
-   }
-}
 @end
