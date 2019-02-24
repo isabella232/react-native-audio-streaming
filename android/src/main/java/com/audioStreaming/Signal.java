@@ -36,7 +36,6 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 public class Signal extends Service
         implements ExoPlayer.EventListener, MetadataRenderer.Output, ExtractorMediaSource.EventListener {
@@ -147,9 +146,8 @@ public class Signal extends Service
     public void setData(Context context, ReactNativeAudioStreamingModule module) {
         this.context = context;
         Class<?> clsActivity = module.getClassActivity();
-        ReactNativeAudioStreamingModule module1 = module;
 
-        EventsReceiver eventsReceiver = new EventsReceiver(module1);
+        EventsReceiver eventsReceiver = new EventsReceiver(module);
 
         registerReceiver(eventsReceiver, new IntentFilter(Mode.CREATED));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.IDLE));
@@ -336,7 +334,7 @@ public class Signal extends Service
         return player != null && player.getPlayWhenReady() && player.getPlaybackState() != ExoPlayer.STATE_ENDED;
     }
 
-    public boolean isReady() {
+    private boolean isReady() {
         return player != null && player.getPlaybackState() == ExoPlayer.STATE_READY;
     }
 
