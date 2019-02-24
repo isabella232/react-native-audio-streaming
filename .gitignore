@@ -23,9 +23,9 @@ project.xcworkspace
 
 # Android/IJ
 #
-android/.idea
-android/.gradle
-android/local.properties
+.idea/
+.gradle/
+local.properties
 build
 
 # node.js
