@@ -93,6 +93,7 @@ class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule impleme
     try {
       long timeMillis = seconds * 1000;
       signal.play(streamingURL, timeMillis);
+      promise.resolve(true);
     } catch (Exception e) {
       promise.reject(ERROR, e);
     }
