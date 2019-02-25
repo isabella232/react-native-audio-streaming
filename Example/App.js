@@ -1,9 +1,3 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- * @flow
- */
-
 import React, { Component } from 'react'
 import {
   Platform,
@@ -15,6 +9,7 @@ import {
   NativeEventEmitter,
   TouchableOpacity,
   Button,
+  Picker
 } from 'react-native'
 
 import { ReactNativeAudioStreaming } from 'react-native-audio-streaming'
@@ -55,77 +50,170 @@ const data = [
 ]
 
 export default class App extends Component {
-  state = { status: null, progress: 0.0, duration: 0.0 }
+  state = {
+    status: null,
+    progress: 0.0,
+    duration: 0.0,
+    speed: "0",
+  };
 
   componentDidMount() {
     this.subscription = reactNativeAudioStreamingEmitter.addListener(
       "AudioBridgeEvent",
       event => {
-        let state = { status: event.status }
+        let state = { status: event.status };
         if (event.status === "STREAMING") {
-          state.progress = event.progress
-          state.duration = event.duration
+          state.progress = event.progress;
+          state.duration = event.duration;
         }
-        this.setState(state)
+        this.setState(state);
       }
-    )
+    );
   }
 
   componentWillUnmount() {
-    this.subscription.remove()
-    this.onStop()
+    this.subscription.remove();
+    this.onStop();
   }
 
-  renderItem = ({ item, index }) => <View style={styles.item}>
-      <Button onPress={() => this.onPlayStream(item.stream)} title={item.title} />
+  renderItem = ({ item, index }) => (
+    <View style={styles.item}>
+      <Button
+        onPress={() =>
+          this.onPlayStream(item.stream, 0)
+        }
+        title={item.title}
+      />
       <View style={styles.spacing} />
-      {Platform.OS === "android" ? <Button onPress={() => this.onPlayStream(item.stream, 100)} title="Start at 100 seconds" /> : null}
+      <Button
+        onPress={() =>
+          this.onPlayStream(item.stream, 100)
+        }
+        title="Start at 100 seconds"
+      />
     </View>
-  
-  onPlayStream = (url, position = 0) => ReactNativeAudioStreaming.play(url, position)
-  
-  onPause = () => ReactNativeAudioStreaming.pause()
+  );
 
-  onResume = () => ReactNativeAudioStreaming.resume()
+  onPlayStream = async (url, position = 0.0) => {
+    const result = await ReactNativeAudioStreaming.play(
+      url,
+      position
+    );
+    console.log("Promise result", result);
+  };
 
-  onStop = () => ReactNativeAudioStreaming.stop()
+  onPause = async () => {
+    const result = await ReactNativeAudioStreaming.pause();
+    console.log("Promise result", result);
+  };
 
-  onForward = () => ReactNativeAudioStreaming.goForward(15)
+  onResume = async () => {
+    const result = await ReactNativeAudioStreaming.resume();
+    console.log("Promise result", result);
+  };
 
-  onBack = () => ReactNativeAudioStreaming.goBack(15)
+  onStop = async () => {
+    const result = await ReactNativeAudioStreaming.stop();
+    console.log("Promise result", result);
+  };
 
-  onPress = () => false
+  onForward = async () => {
+    const result = await ReactNativeAudioStreaming.goForward(
+      15
+    );
+    console.log("Promise result", result);
+  };
+
+  onBack = async () => {
+    const result = await ReactNativeAudioStreaming.goBack(
+      15
+    );
+    console.log("Promise result", result);
+  };
+
+  onSetPlayerRate = async speed => {
+    if (speed) {
+      const result = await ReactNativeAudioStreaming.setPlaybackRate(
+        parseFloat(speed)
+      );
+      console.log("Promise result", result);
+    }
+  };
+
+  onPress = () => false;
 
   render() {
-    return <View style={styles.container}>
-        <FlatList data={data} renderItem={this.renderItem} keyExtractor={item => item.title} />
+    return (
+      <View style={styles.container}>
+        <FlatList
+          data={data}
+          renderItem={this.renderItem}
+          keyExtractor={item => item.title}
+        />
         <View style={styles.state}>
           <Text>Status: {this.state.status}</Text>
           <Text>
-            Progress: {Math.round(this.state.progress)}
+            Progress:{" "}
+            {Math.round(this.state.progress)}
           </Text>
           <Text>
-            Duration: {Math.round(this.state.duration)}
+            Duration:{" "}
+            {Math.round(this.state.duration)}
           </Text>
         </View>
-        <View style={[styles.player, styles.item, styles.row]}>
-          <TouchableOpacity style={styles.iconButton} onPress={this.onBack}>
+        <View
+          style={[
+            styles.player,
+            styles.item,
+            styles.row,
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={this.onBack}
+          >
             <Image source={images.fastRewind} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={this.onStop}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={this.onStop}
+          >
             <Image source={images.stop} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={this.onResume}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={this.onResume}
+          >
             <Image source={images.play} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={this.onPause}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={this.onPause}
+          >
             <Image source={images.pause} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={this.onForward}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={this.onForward}
+          >
             <Image source={images.fastForward} />
           </TouchableOpacity>
         </View>
+        <Picker
+          selectedValue={this.state.speed}
+          style={{ height: 50, width: 200 }}
+          onValueChange={value => {
+            this.onSetPlayerRate(value);
+            this.setState({ speed: value });
+          }}
+        >
+          <Picker.Item label="0.5x" value="0.5" />
+          <Picker.Item label="1.0x" value="1.0" />
+          <Picker.Item label="1.5x" value="1.5" />
+          <Picker.Item label="2.0x" value="2.0" />
+        </Picker>
       </View>
+    );
   }
 }
 

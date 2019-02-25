@@ -13,6 +13,7 @@ import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import javax.annotation.Nullable;
 import android.app.Activity;
@@ -20,11 +21,13 @@ import android.app.Activity;
 class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule implements ServiceConnection {
 
   public static final String SHOULD_SHOW_NOTIFICATION = "showInAndroidNotifications";
+  private static final String ERROR = "REACT_NATIVE_AUDIO_STREAMING_ERROR";
   private final ReactApplicationContext context;
 
   private Class<?> clsActivity;
   private static Signal signal;
   private boolean shouldShowNotification;
+
 
   public ReactNativeAudioStreamingModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -86,43 +89,84 @@ class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule impleme
   }
 
   @ReactMethod
-  public void play(String streamingURL, int seconds) {
-    playInternal(streamingURL, seconds);
-  }
-
-  private void playInternal(String streamingURL, int seconds) {
-    long timeMillis = seconds * 1000;
-    signal.play(streamingURL, timeMillis);
-  }
-
-  @ReactMethod
-  private void stop() {
-    signal.stop();
+  public void play(String streamingURL, int seconds, final Promise promise) {
+    try {
+      long timeMillis = seconds * 1000;
+      signal.play(streamingURL, timeMillis);
+      promise.resolve(true);
+    } catch (Exception e) {
+      promise.reject(ERROR, e);
+    }
   }
 
   @ReactMethod
-  public void pause() {
-    signal.pause();
+  private void stop(final Promise promise) {
+    try {
+      signal.stop();
+      promise.resolve(true);
+    } catch (Exception e) {
+      promise.reject(ERROR, e);
+    }
   }
 
   @ReactMethod
-  public void resume() {
-    signal.resume();
+  public void pause(final Promise promise) {
+    try {
+      signal.pause();
+      promise.resolve(true);
+    } catch (Exception e) {
+      promise.reject(ERROR, e);
+    }
   }
 
   @ReactMethod
-  public void seekToTime(int seconds) {
-    signal.seekTo(seconds * 1000);
+  public void resume(final Promise promise) {
+    try {
+      signal.resume();
+      promise.resolve(true);
+    } catch (Exception e) {
+      promise.reject(ERROR, e);
+    }
   }
 
   @ReactMethod
-  public void goForward(double seconds) {
-    signal.goForward(seconds);
+  public void seekToTime(int seconds, final Promise promise) {
+    try {
+      signal.seekTo(seconds * 1000);
+      promise.resolve(true);
+    } catch (Exception e) {
+      promise.reject(ERROR, e);
+    }
   }
 
   @ReactMethod
-  public void goBack(double seconds) {
-    signal.goBack(seconds);
+  public void goForward(double seconds, final Promise promise) {
+    try {
+      signal.goForward(seconds);
+      promise.resolve(true);
+    } catch (Exception e) {
+      promise.reject(ERROR, e);
+    }
+  }
+
+  @ReactMethod
+  public void goBack(double seconds, final Promise promise) {
+    try {
+      signal.goBack(seconds);
+      promise.resolve(true);
+    } catch (Exception e) {
+      promise.reject(ERROR, e);
+    }
+  }
+
+  @ReactMethod
+  public void setPlaybackRate(float speed, final Promise promise) {
+    try {
+      signal.setPlaybackRate(speed);
+      promise.resolve(true);
+    } catch (Exception e) {
+      promise.reject(ERROR, e);
+    }
   }
 
   @ReactMethod
@@ -133,10 +177,5 @@ class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule impleme
     state.putString("status", signal != null && signal.isPlaying() ? Mode.PLAYING : Mode.STOPPED);
     state.putString("url", signal.getStreamingURL());
     callback.invoke(null, state);
-  }
-
-  @ReactMethod
-  public void setCurrentPlaybackRate(float speed) {
-    signal.setPlaybackRate(speed);
   }
 }
