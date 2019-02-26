@@ -5,7 +5,6 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -44,7 +43,6 @@ public class Signal extends Service
     // Player
     private SimpleExoPlayer player = null;
 
-    private Boolean lostFocus = false;
 
     private static final String BROADCAST_PLAYBACK_STOP = "stop";
     public static final String BROADCAST_PLAYBACK_PLAY = "pause";
@@ -57,45 +55,10 @@ public class Signal extends Service
     private final Handler mHandler = new Handler();
     private Runnable runnable;
 
-    private final AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
-        public void onAudioFocusChange(int focusChange) {
-
-            if (focusChange == AudioManager.AUDIOFOCUS_LOSS && isPlaying()) {
-                // Permanent loss of audio focus
-                if (isPlaying()) {
-                    lostFocus = true;
-                    stop();
-                }
-                // Wait 30 seconds before stopping playback
-                // mHandler.postDelayed(mDelayedStopRunnable, TimeUnit.SECONDS.toMillis(30));
-
-            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-                if (isPlaying()) {
-                    lostFocus = true;
-                    pause();
-                }
-            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-                // Lower the volume, keep playing
-                player.setVolume(0.4f);
-            } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN && isReady()) {
-                // Your app has been granted audio focus again
-                // Raise volume to normal, restart playback if necessary
-                if (player.getVolume() != 1) {
-                    player.setVolume(1);
-                }
-                if (!isPlaying() && lostFocus) {
-                    resume();
-                }
-                lostFocus = false;
-            }
-        }
-    };
-
     private final Runnable mDelayedStopRunnable = new Runnable() {
         @Override
         public void run() {
             stop();
-            lostFocus = false;
         }
     };
 
@@ -165,7 +128,6 @@ public class Signal extends Service
         registerReceiver(eventsReceiver, new IntentFilter(Mode.METADATA_UPDATED));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.ALBUM_UPDATED));
         registerReceiver(eventsReceiver, new IntentFilter(Mode.STREAMING));
-        registerReceiver(eventsReceiver, new IntentFilter(Mode.LOST_FOCUS));
     }
 
     @Override
@@ -180,11 +142,7 @@ public class Signal extends Service
 
         switch (playbackState) {
         case ExoPlayer.STATE_IDLE:
-            if (lostFocus) {
-                sendBroadcast(new Intent(Mode.LOST_FOCUS));
-            } else {
-                sendBroadcast(new Intent(Mode.IDLE));
-            }
+            sendBroadcast(new Intent(Mode.IDLE));
             break;
         case ExoPlayer.STATE_BUFFERING:
             sendBroadcast(new Intent(Mode.BUFFERING));
@@ -295,11 +253,6 @@ public class Signal extends Service
         player.addListener(this);
 
         player.setPlayWhenReady(playWhenReady);
-
-        // Start listening to audio focus
-        AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        assert am != null;
-        am.requestAudioFocus(afChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
         if (position != 0.0) {
             seekTo(position);
