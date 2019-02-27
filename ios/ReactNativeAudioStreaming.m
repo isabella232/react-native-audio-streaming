@@ -106,6 +106,7 @@ RCT_EXPORT_METHOD(play:(NSString *) streamUrl position:(double)position resolve:
    [self setup];
 
    if (!self.audioPlayer) {
+      reject(@"error", @"AudioPlayer not initialized", nil);
       return;
    }
 
@@ -128,6 +129,7 @@ RCT_EXPORT_METHOD(play:(NSString *) streamUrl position:(double)position resolve:
 RCT_EXPORT_METHOD(seekToTime:(double) seconds resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
+      reject(@"error", @"AudioPlayer not initialized", nil);
       return;
    }
 
@@ -143,6 +145,7 @@ RCT_EXPORT_METHOD(seekToTime:(double) seconds resolve:(RCTPromiseResolveBlock)re
 RCT_EXPORT_METHOD(goForward:(double) seconds resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
+      reject(@"error", @"AudioPlayer not initialized", nil);
       return;
    }
 
@@ -164,6 +167,7 @@ RCT_EXPORT_METHOD(goForward:(double) seconds resolve:(RCTPromiseResolveBlock)res
 RCT_EXPORT_METHOD(goBack:(double) seconds resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
+      reject(@"error", @"AudioPlayer not initialized", nil);
       return;
    }
 
@@ -185,10 +189,11 @@ RCT_EXPORT_METHOD(goBack:(double) seconds resolve:(RCTPromiseResolveBlock)resolv
 RCT_EXPORT_METHOD(pause:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
+      reject(@"error", @"AudioPlayer not initialized", nil);
       return;
-   } else {
-      [self.audioPlayer pause];
    }
+   
+   [self.audioPlayer pause];
 
    if (self.audioPlayer.state == STKAudioPlayerStateError) {
       reject(@"error", @"error", nil);
@@ -200,10 +205,11 @@ RCT_EXPORT_METHOD(pause:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseReject
 RCT_EXPORT_METHOD(resume:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
+      reject(@"error", @"AudioPlayer not initialized", nil);
       return;
-   } else {
-      [self.audioPlayer resume];
    }
+   
+   [self.audioPlayer resume];
 
    if (self.audioPlayer.state == STKAudioPlayerStateError) {
       reject(@"error", @"error", nil);
@@ -215,11 +221,12 @@ RCT_EXPORT_METHOD(resume:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejec
 RCT_EXPORT_METHOD(stop:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
    if (!self.audioPlayer) {
+      reject(@"error", @"AudioPlayer not initialized", nil);
       return;
-   } else {
-      [self.audioPlayer stop];
    }
-
+   
+   [self.audioPlayer stop];
+   
    if (self.audioPlayer.state == STKAudioPlayerStateError) {
       reject(@"error", @"error", nil);
    }
