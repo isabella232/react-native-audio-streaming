@@ -54,7 +54,6 @@ export default class App extends Component {
     status: null,
     progress: 0.0,
     duration: 0.0,
-    speed: "0",
   };
 
   componentDidMount() {
@@ -152,32 +151,14 @@ export default class App extends Component {
         />
         <View style={styles.state}>
           <Text>Status: {this.state.status}</Text>
-          <Text>
-            Progress:{" "}
-            {Math.round(this.state.progress)}
-          </Text>
-          <Text>
-            Duration:{" "}
-            {Math.round(this.state.duration)}
-          </Text>
+          <Text>Progress: {Math.round(this.state.progress)}</Text>
+          <Text>Duration: {Math.round(this.state.duration)}</Text>
         </View>
-        <View
-          style={[
-            styles.player,
-            styles.item,
-            styles.row,
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={this.onBack}
-          >
+        <View style={[styles.player, styles.item, styles.row]}>
+          <TouchableOpacity style={styles.iconButton} onPress={this.onBack}>
             <Image source={images.fastRewind} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={this.onStop}
-          >
+          <TouchableOpacity style={styles.iconButton} onPress={this.onStop}>
             <Image source={images.stop} />
           </TouchableOpacity>
           <TouchableOpacity
@@ -199,19 +180,23 @@ export default class App extends Component {
             <Image source={images.fastForward} />
           </TouchableOpacity>
         </View>
-        <Picker
-          selectedValue={this.state.speed}
-          style={{ height: 50, width: 200 }}
-          onValueChange={value => {
-            this.onSetPlayerRate(value);
-            this.setState({ speed: value });
-          }}
-        >
-          <Picker.Item label="0.5x" value="0.5" />
-          <Picker.Item label="1.0x" value="1.0" />
-          <Picker.Item label="1.5x" value="1.5" />
-          <Picker.Item label="2.0x" value="2.0" />
-        </Picker>
+        <View style={[styles.player, styles.item, styles.row, styles.spaceBetween]}>
+          <TouchableOpacity onPress={() => this.onSetPlayerRate(0.5)}>
+            <Text>0.5</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => this.onSetPlayerRate(1)}>
+            <Text>1</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => this.onSetPlayerRate(1.5)}>
+            <Text>1.5</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => this.onSetPlayerRate(2)}>
+            <Text>2</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => this.onSetPlayerRate(2.5)}>
+            <Text>2.5</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -247,6 +232,9 @@ const styles = StyleSheet.create({
   },
   spacing: {
     height: 5,
+  },
+  spaceBetween: {
+    justifyContent: 'space-around'
   },
   iconButton: {
     width: 40,
