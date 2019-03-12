@@ -236,7 +236,18 @@ RCT_EXPORT_METHOD(stop:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectB
 
 RCT_EXPORT_METHOD(setPlaybackRate:(double) speed resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
-   return;
+   if (!self.audioPlayer) {
+      reject(@"error", @"AudioPlayer not initialized", nil);
+      return
+   }
+   
+   self.audioPlayer.rate = speed
+   
+   if (self.audioPlayer.state == STKAudioPlayerStateError) {
+      reject(@"error", @"error", nil);
+   }
+   
+   resolve(@"success")
 }
 
 
